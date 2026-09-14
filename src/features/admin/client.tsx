@@ -60,7 +60,11 @@ export function ClientDetail({ id }: { id: string }) {
         <Button variant="outline" onClick={() => setDialog("edit")}>
           Edit client
         </Button>
-        <Button variant="outline" onClick={() => action("impersonate", {})}>
+        <Button
+          variant="outline"
+          disabled={c.status !== "ACTIVE"}
+          onClick={() => action("impersonate", {})}
+        >
           <Eye size={15} />
           Login as client
         </Button>
@@ -70,10 +74,31 @@ export function ClientDetail({ id }: { id: string }) {
             setDialog(c.status === "ACTIVE" ? "suspend" : "reactivate")
           }
         >
-          {c.status === "ACTIVE" ? "Suspend" : "Reactivate"}
+          {c.status === "ACTIVE"
+            ? "Suspend"
+            : c.status === "DRAFT"
+              ? "Activate workspace"
+              : "Reactivate"}
         </Button>
       </PageTitle>
       {error && <ErrorBox error={error} />}
+      {c.status === "DRAFT" && (
+        <div className="notice">
+          <strong>Inactive client draft</strong>
+          <p>
+            Next: review and activate the package limits, add a verified
+            clientspace connection, then activate this workspace and send the
+            owner invitation.
+          </p>
+          <Link
+            href="/admin/packages"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Review package limits
+          </Link>
+        </div>
+      )}
       <div className="dashboard-grid">
         <div className="panel content-panel">
           <div className="section-title">
@@ -104,7 +129,7 @@ export function ClientDetail({ id }: { id: string }) {
             size="sm"
             onClick={() => setDialog("connection")}
           >
-            Update connection key
+            {c.mapping ? "Update connection key" : "Add connection"}
           </Button>
           <dl className="detail-grid">
             <div>
@@ -137,7 +162,7 @@ export function ClientDetail({ id }: { id: string }) {
               sendNow: true,
             })
           }
-          disabled={busy}
+          disabled={busy || c.status !== "ACTIVE"}
         >
           <Mail size={15} />
           Send owner invitation
@@ -204,14 +229,16 @@ export function ClientDetail({ id }: { id: string }) {
           dialog === "edit"
             ? "Edit client"
             : dialog === "connection"
-              ? "Update connection key"
+              ? c.mapping
+                ? "Update connection key"
+                : "Add clientspace connection"
               : dialog === "members"
                 ? "Edit member access"
                 : dialog === "package"
                   ? "Change package"
                   : dialog === "overrides"
                     ? "Client overrides"
-                    : `${dialog === "suspend" ? "Suspend" : "Reactivate"} client?`
+                    : `${dialog === "suspend" ? "Suspend" : c.status === "DRAFT" ? "Activate" : "Reactivate"} client?`
         }
         wide={dialog === "overrides"}
       >
@@ -227,13 +254,25 @@ export function ClientDetail({ id }: { id: string }) {
             onSubmit={(e) => {
               e.preventDefault();
               const form = new FormData(e.currentTarget);
-              action("connection", { apiKey: form.get("apiKey") });
+              action("connection", {
+                apiKey: form.get("apiKey"),
+                ...(!c.mapping
+                  ? { clientspaceId: Number(form.get("clientspaceId")) }
+                  : {}),
+              });
             }}
           >
             <p className="muted">
-              Enter a new key for the currently mapped clientspace. It will be
-              verified before replacing the stored key.
+              {c.mapping
+                ? "Enter a new key for the currently mapped clientspace. It will be verified before replacing the stored key."
+                : "Enter this client's isolated clientspace ID and key. The connection will be verified before saving."}
             </p>
+            {!c.mapping && (
+              <label>
+                Clientspace ID
+                <input name="clientspaceId" type="number" min="1" required />
+              </label>
+            )}
             <label>
               Clientspace API key
               <input
@@ -314,7 +353,9 @@ export function ClientDetail({ id }: { id: string }) {
             <p>
               {dialog === "suspend"
                 ? "Client users will lose access to their workspace. Existing outreach continues in the provider; pause campaigns separately if required."
-                : "Client users will regain workspace access."}
+                : c.status === "DRAFT"
+                  ? "The package must be active with reviewed limits, and a verified connection must be saved. Activation does not send an invitation; use Send owner invitation afterward."
+                  : "Client users will regain workspace access."}
             </p>
             <div className="form-actions">
               <Button variant="outline" onClick={() => setDialog("")}>

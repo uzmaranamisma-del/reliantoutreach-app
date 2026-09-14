@@ -105,12 +105,40 @@ export const clientInput = z.object({
       }
     }, "Invalid timezone"),
   packageId: z.string().min(1),
-  connection: z.enum(["existing", "new"]),
+  connection: z.enum(["existing", "new", "later"]),
   clientspaceId: z.number().int().positive().optional(),
   sendNow: z.boolean().default(true),
 });
 export async function createClient(actorId: string, input: unknown) {
-  const data = clientInput.parse(input);
+  const data = clientInput
+    .extend({ saveAsDraft: z.boolean().default(false) })
+    .parse(input);
+  if (data.saveAsDraft) {
+    return withLease("admin:create-client", async () => {
+      const pkg = await db.package.findFirst({
+        where: { id: data.packageId, serviceType: "EMAIL" },
+      });
+      if (!pkg) throw new AppError(422, "Choose an email outreach package.");
+      const fields = clientInput
+        .omit({ connection: true, clientspaceId: true, sendNow: true })
+        .parse(data);
+      return db.$transaction(async (tx) => {
+        const client = await tx.client.create({
+          data: { ...fields, status: "DRAFT" },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            clientId: client.id,
+            action: "client.draft-created",
+          },
+        });
+        return { id: client.id, status: "DRAFT" };
+      });
+    });
+  }
+  if (data.connection === "later")
+    throw new AppError(422, "Save as draft to connect later.");
   if (
     !(await db.package.findFirst({
       where: {

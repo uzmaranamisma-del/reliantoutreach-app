@@ -8,20 +8,25 @@ export async function rotateConnection(
   clientId: string,
   input: unknown,
 ) {
-  const { apiKey } = z
-    .object({ apiKey: z.string().min(8).max(2000) })
+  const { apiKey, clientspaceId } = z
+    .object({
+      apiKey: z.string().min(8).max(2000),
+      clientspaceId: z.number().int().positive().optional(),
+    })
     .parse(input);
   const mapping = await db.manyreachClientspace.findUnique({
     where: { clientId },
   });
-  if (!mapping) throw new AppError(404, "Clientspace mapping not found.");
+  const providerId = mapping?.providerId ?? clientspaceId;
+  if (!providerId)
+    throw new AppError(422, "Enter the clientspace ID for this connection.");
   const account = await providerRequest(
     apiKey,
-    `clientspace:${mapping.providerId}`,
+    `clientspace:${providerId}`,
     "/account",
   );
   if (
-    Number(account.id) !== mapping.providerId ||
+    Number(account.id) !== providerId ||
     String(account.keyType).toLowerCase() !== "clientspace"
   )
     throw new AppError(
@@ -29,15 +34,57 @@ export async function rotateConnection(
       "The key must belong to this exact isolated clientspace.",
     );
   await db.$transaction(async (tx) => {
-    await tx.manyreachClientspace.update({
-      where: { clientId },
-      data: { encryptedApiKey: encrypt(apiKey), lastError: null },
-    });
+    if (mapping)
+      await tx.manyreachClientspace.update({
+        where: { clientId },
+        data: { encryptedApiKey: encrypt(apiKey), lastError: null },
+      });
+    else
+      await tx.manyreachClientspace.create({
+        data: { clientId, providerId, encryptedApiKey: encrypt(apiKey) },
+      });
     await tx.auditLog.create({
-      data: { actorId, clientId, action: "client.connection-key-rotated" },
+      data: {
+        actorId,
+        clientId,
+        action: mapping
+          ? "client.connection-key-rotated"
+          : "client.connection-added",
+      },
     });
   });
   return { ok: true };
+}
+export async function activateClient(actorId: string, clientId: string) {
+  return db.$transaction(async (tx) => {
+    const client = await tx.client.findUnique({
+      where: { id: clientId },
+      include: { package: true, mapping: true },
+    });
+    if (!client) throw new AppError(404, "Client not found.");
+    if (
+      !client.package.active ||
+      client.package.requiresLimitReview ||
+      client.package.serviceType !== "EMAIL"
+    )
+      throw new AppError(
+        422,
+        "Review the package limits and activate the email package before activating this workspace.",
+      );
+    if (!client.mapping)
+      throw new AppError(
+        422,
+        "Add and verify the clientspace connection before activating this workspace.",
+      );
+    await tx.client.update({
+      where: { id: clientId },
+      data: { status: "ACTIVE" },
+    });
+    await tx.auditLog.create({
+      data: { actorId, clientId, action: "client.activated" },
+    });
+    return { ok: true };
+  });
 }
 export async function changeMember(
   actorId: string,

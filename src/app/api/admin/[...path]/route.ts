@@ -7,6 +7,7 @@ import {
   rotateConnection,
   changeMember,
   cancelJob,
+  activateClient,
 } from "@/server/admin-actions";
 import { createInvitation } from "@/server/invitations";
 import { permissions, limitKeys } from "@/lib/permissions";
@@ -31,11 +32,18 @@ export const GET = endpoint(async (request, context) => {
     return {
       items: await db.package.findMany({
         where: {
-          active: true,
           serviceType: "EMAIL",
-          requiresLimitReview: false,
+          ...(url.searchParams.get("purpose") === "onboarding"
+            ? {}
+            : { active: true, requiresLimitReview: false }),
         },
-        select: { id: true, name: true },
+        select: {
+          id: true,
+          name: true,
+          active: true,
+          requiresLimitReview: true,
+          features: { select: { key: true, enabled: true } },
+        },
         orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       }),
     };
@@ -265,8 +273,15 @@ export const POST = endpoint(async (request, context) => {
   }
   if (section === "clients" && id)
     return withLease(`tenant:${id}`, async () => {
-      await db.client.findUniqueOrThrow({ where: { id } });
-      if (action === "invite") return createInvitation(id, who.user.id, data);
+      const client = await db.client.findUniqueOrThrow({ where: { id } });
+      if (action === "invite") {
+        if (client.status !== "ACTIVE")
+          throw new AppError(
+            422,
+            "Activate this workspace before inviting its owner.",
+          );
+        return createInvitation(id, who.user.id, data);
+      }
       if (action === "impersonate") {
         await db.session.update({
           where: { id: who.session.id },
@@ -287,9 +302,15 @@ export const POST = endpoint(async (request, context) => {
       if (action === "suspend" || action === "reactivate") {
         if (data.confirm !== true)
           throw new AppError(422, "Confirm this action.");
+        if (action === "reactivate") return activateClient(who.user.id, id);
+        if (client.status === "DRAFT")
+          throw new AppError(
+            422,
+            "This workspace is already an inactive draft.",
+          );
         await db.client.update({
           where: { id },
-          data: { status: action === "suspend" ? "SUSPENDED" : "ACTIVE" },
+          data: { status: "SUSPENDED" },
         });
       } else if (action === "package") {
         const packageId = z.string().min(1).parse(data.packageId);

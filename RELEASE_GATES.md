@@ -25,11 +25,11 @@ This is **not a declaration of production completion**. The brief's full real-se
 | Senders | SMTP/IMAP creation, safe output, basic limit/name edit, deletion | Rich warmup/settings editor and error/health analytics |
 | Packages | Four website packages with setup/monthly fees, service descriptions, terms, draft review gate; persisted policy/overrides | Owner-supplied numerical limits and monthly send-cap resolution; external provider edits cannot be prevented |
 | Team/admin users | Invitation revoke, member removal/role editor, Superadmin ownership/access editor, user enable/disable | Arbitrary internal Superadmin provisioning flow |
-| Clients | Creation/mapping, package/overrides, suspension, impersonation, contact editor and verified clientspace-key rotation | Provider orphan reconciliation after partial creation failures |
+| Clients | Draft onboarding with draft email packages, deferred verified connection, guarded activation, creation/mapping, package/overrides, suspension, impersonation and contact editor | Provider orphan reconciliation after partial creation failures |
 | Data tables | Package search/server paging, provider-resource cursors, some provider search/filter, page-local sorting | Server sorting where supported and remaining large-table/picker refinements |
 | Background jobs | DB claims/leases, bounded imports/enrollment, cleanup, queued-job cancellation; local claim race verified | Hosted multi-instance/load verification; no exactly-once guarantee across MySQL and external side effects |
 | Notifications/settings | Workspace job-result notifications with shared acknowledgments; product name, color, support and policy-link settings | Custom logo and complete auth/email template branding; notification generation requires cron |
-| Testing | 66 unit tests, local MySQL concurrency/rollback checks, public browser smoke tests and authenticated admin checks | Full database-backed and live-provider acceptance scenario |
+| Testing | 74 unit tests, local MySQL concurrency/rollback checks, public browser smoke tests and authenticated admin checks | Full database-backed and live-provider acceptance scenario |
 
 No unsupported feature has been simulated with random analytics. Unimplemented capabilities are omitted, restricted or called out above. Completing these gaps is additional implementation work, not something credentials alone will fix.
 

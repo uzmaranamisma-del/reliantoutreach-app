@@ -5,10 +5,10 @@ Checked on 2026-09-14 on Windows with Node.js 24.18.0.
 | Check | Result | Scope |
 |---|---|---|
 | Prisma client generation | Passed | Schema parses and generates Prisma 7.10 client |
-| MySQL migrations | Passed | Initial schema, package catalog and cancelled-job enum applied to local MySQL |
+| MySQL migrations | Passed | Initial schema, package catalog, cancelled-job enum and draft client status applied to local MySQL |
 | TypeScript | Passed | `npm run typecheck` |
 | ESLint | Passed, no warnings | `npm run lint` |
-| Unit tests | 66 passed across 11 files | Tenant boundaries, safe responses, adapter, invitations, jobs, cron, receipts, package review gate, admin ownership/cancellation/key rotation, enrollment, branding URLs and schedule validation; database/provider mocked |
+| Unit tests | 74 passed across 12 files | Tenant boundaries, safe responses, adapter, invitations, jobs, cron, receipts, package review gate, admin ownership/cancellation/key rotation, enrollment, branding URLs, schedule validation, draft onboarding and activation prerequisites; database/provider mocked |
 | Local MySQL checks | Passed | Competing job claim/cancellation has one winner; active lease excludes another caller and can be reused after release; transaction rollback removes test writes |
 | Authenticated local admin | Passed | Real Superadmin login, four persisted package cards and package editor; settings save persisted successfully |
 | Production build | Passed | `npm run build`; Next.js 16.3.5, all pages and route handlers compiled |

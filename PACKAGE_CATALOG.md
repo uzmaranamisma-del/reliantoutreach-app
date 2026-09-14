@@ -11,7 +11,7 @@ Source: [ReliantOutreach pricing](https://reliantoutreach.com/#pricing), checked
 
 All packages have a three-month management minimum. Setup is paid upfront. The dashboard includes each package's setup services, monthly services and commercial terms. LinkedIn is a managed service catalog entry, not a LinkedIn automation integration.
 
-The owner chose to supply the unpublished numeric limits. Launch, Growth and Scale stay in draft until those limits are reviewed. No technical resource allowances have been invented. Missing limits deny capacity. Provide the following for each email plan:
+The owner chose to supply the unpublished numeric limits. Launch, Growth and Scale stay in draft until those limits are reviewed. They can be selected in Create client workspace to save an inactive client draft. Draft creation does not create a provider clientspace or queue an invitation. Add the verified connection on the client details page, review/activate its email package, then activate the workspace and send its owner invitation. No technical resource allowances have been invented. Missing limits deny capacity. Provide the following for each email plan:
 
 - Connected sending inboxes
 - Campaigns

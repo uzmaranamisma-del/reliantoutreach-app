@@ -111,7 +111,7 @@ export function Clients() {
 }
 
 export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
-  const packages = useLive("/api/admin/packages/options"),
+  const packages = useLive("/api/admin/packages/options?purpose=onboarding"),
     [step, setStep] = useState(0),
     [form, setForm] = useState<any>({
       company: "",
@@ -140,6 +140,9 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
   const current = packages.data?.items.find(
     (p: any) => p.id === form.packageId,
   );
+  const draftPackage =
+    !!current && (!current.active || current.requiresLimitReview);
+  const saveAsDraft = draftPackage || form.connection === "later";
   return (
     <>
       <ol className="wizard-steps">
@@ -185,16 +188,55 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
               name="package"
               label="Package"
               value={form.packageId}
-              onChange={(v) => setForm({ ...form, packageId: v })}
+              onChange={(v) => {
+                const chosen = packages.data?.items.find(
+                  (p: any) => p.id === v,
+                );
+                setForm({
+                  ...form,
+                  packageId: v,
+                  connection:
+                    chosen && (!chosen.active || chosen.requiresLimitReview)
+                      ? "later"
+                      : form.connection,
+                });
+              }}
               options={[
                 { value: "", label: "Choose a package" },
-                ...(packages.data?.items || [])
-                  .filter((p: any) => p.active)
-                  .map((p: any) => ({ value: p.id, label: p.name })),
+                ...(packages.data?.items || []).map((p: any) => ({
+                  value: p.id,
+                  label: `${p.name}${!p.active || p.requiresLimitReview ? " — Draft" : ""}`,
+                })),
               ]}
             />
-            {!packages.data?.items.length && (
-              <p>Create a package before adding a client.</p>
+            {packages.isLoading && <p>Loading packages…</p>}
+            {packages.error && (
+              <ErrorBox
+                error={packages.error}
+                retry={() => packages.refetch()}
+              />
+            )}
+            {!packages.isLoading &&
+              !packages.error &&
+              !packages.data?.items.length && (
+                <p>
+                  No email packages are available.{" "}
+                  <Link
+                    href="/admin/packages"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Create a package
+                  </Link>
+                  .
+                </p>
+              )}
+            {draftPackage && (
+              <p className="notice">
+                You can continue with this package. The client will be saved as
+                an inactive draft until the package limits are reviewed and a
+                connection is added.
+              </p>
             )}
           </>
         )}
@@ -207,7 +249,7 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
             </p>
             <div className="permission-grid">
               {current?.features
-                .filter((f: any) => f.enabled)
+                ?.filter((f: any) => f.enabled)
                 .map((f: any) => (
                   <div className="permission-item" key={f.key}>
                     <Check size={15} />
@@ -219,35 +261,50 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
         )}
         {step === 3 && (
           <>
-            <Field
-              name="connection"
-              label="Manyreach connection"
-              value={form.connection}
-              onChange={(v) => setForm({ ...form, connection: v })}
-              options={[
-                { value: "existing", label: "Map an existing clientspace" },
-                { value: "new", label: "Create a new clientspace" },
-              ]}
-            />
-            {form.connection === "existing" ? (
-              <Field
-                name="clientspaceId"
-                label="Manyreach clientspace ID"
-                type="number"
-                value={form.clientspaceId}
-                onChange={(v) => setForm({ ...form, clientspaceId: v })}
-              />
-            ) : (
+            {draftPackage ? (
               <p className="notice">
-                A new isolated clientspace will be created through the API with
-                separate credits and automatic allocation disabled. This
-                requires a compatible agency plan.
+                Connect after saving this draft. Open the client’s Connection
+                section when your clientspace ID and API key are ready.
               </p>
+            ) : (
+              <>
+                <Field
+                  name="connection"
+                  label="Manyreach connection"
+                  value={form.connection}
+                  onChange={(v) => setForm({ ...form, connection: v })}
+                  options={[
+                    { value: "later", label: "Connect later — save as draft" },
+                    { value: "existing", label: "Map an existing clientspace" },
+                    { value: "new", label: "Create a new clientspace" },
+                  ]}
+                />
+                {form.connection === "existing" ? (
+                  <Field
+                    name="clientspaceId"
+                    label="Manyreach clientspace ID"
+                    type="number"
+                    value={form.clientspaceId}
+                    onChange={(v) => setForm({ ...form, clientspaceId: v })}
+                  />
+                ) : form.connection === "new" ? (
+                  <p className="notice">
+                    A new isolated clientspace will be created through the API
+                    with separate credits and automatic allocation disabled.
+                    This requires a compatible agency plan.
+                  </p>
+                ) : (
+                  <p className="notice">
+                    Save the client now and add the connection from its details
+                    page later.
+                  </p>
+                )}
+                <p className="muted small">
+                  The server verifies clientspace ownership and its isolated API
+                  credentials.
+                </p>
+              </>
             )}
-            <p className="muted small">
-              The server verifies clientspace ownership and its isolated API
-              credentials.
-            </p>
           </>
         )}
         {step === 4 && (
@@ -261,20 +318,31 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
               </div>
               <Mail />
             </div>
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={form.sendNow}
-                onChange={(e) =>
-                  setForm({ ...form, sendNow: e.target.checked })
-                }
-              />
-              Queue the owner invitation now
-            </label>
-            <p className="muted">
-              The secure link expires after 48 hours by default. Queued
-              invitations are delivered by the cron processor.
-            </p>
+            {saveAsDraft ? (
+              <p className="notice">
+                This saves an inactive client draft. No invitation is created or
+                sent. After reviewing the package limits and adding the
+                connection, activate the workspace and send the owner
+                invitation.
+              </p>
+            ) : (
+              <>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={form.sendNow}
+                    onChange={(e) =>
+                      setForm({ ...form, sendNow: e.target.checked })
+                    }
+                  />
+                  Queue the owner invitation now
+                </label>
+                <p className="muted">
+                  The secure link expires after 48 hours by default. Queued
+                  invitations are delivered by the cron processor.
+                </p>
+              </>
+            )}
           </>
         )}
         {error && <ErrorBox error={error} />}
@@ -300,7 +368,7 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
                     form.country
                   )
                 : step === 1
-                  ? !form.packageId
+                  ? !current || packages.isLoading || !!packages.error
                   : false
             }
           >
@@ -315,8 +383,10 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
               try {
                 const result = await api("/api/admin/clients", {
                   ...form,
+                  saveAsDraft,
+                  sendNow: saveAsDraft ? false : form.sendNow,
                   clientspaceId:
-                    form.connection === "existing"
+                    !saveAsDraft && form.connection === "existing"
                       ? Number(form.clientspaceId)
                       : undefined,
                 });
@@ -328,7 +398,11 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
               }
             }}
           >
-            {busy ? "Creating workspace…" : "Create client"}
+            {busy
+              ? "Saving workspace…"
+              : saveAsDraft
+                ? "Save client draft"
+                : "Create client"}
           </Button>
         )}
       </div>

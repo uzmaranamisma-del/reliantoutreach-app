@@ -11,6 +11,7 @@ enum Role {
   CLIENT_MEMBER
 }
 enum ClientStatus {
+  DRAFT
   ACTIVE
   SUSPENDED
 }
