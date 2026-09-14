@@ -1,5 +1,7 @@
 # ReliantOutreach
 
+**Delivery remains local by the owner's instruction.** No source was pushed to GitHub and no Hostinger deployment was submitted. Start with [DELIVERY_GUIDE.md](DELIVERY_GUIDE.md) for the requested 16-part handoff, [TEST_REPORT.md](TEST_REPORT.md) for verification, and [RELEASE_GATES.md](RELEASE_GATES.md) for unfinished work.
+
 A single Next.js full-stack outreach application for Hostinger managed Node.js hosting, using Prisma + MySQL and a server-side Manyreach REST v2 integration.
 
 **Status: implemented application, not a production-approved release.** The production build passes, but no live Hostinger/MySQL/SMTP/Manyreach credentials were supplied. The user's full acceptance scenario has not been executed. Read [RELEASE_GATES.md](RELEASE_GATES.md) before deployment. In particular, webhooks are deliberately disabled and strict monthly sending caps remain unresolved; finite monthly caps block new campaign starts and manual replies.

@@ -2,6 +2,8 @@
 
 This is a local implementation checkpoint, not production completion. Full live-service acceptance is blocked by missing configuration and the implementation gaps in [RELEASE_GATES.md](RELEASE_GATES.md). No production website was changed, no invitation was sent, and no campaign or reply was sent.
 
+The owner chose to **keep the code local** after the public GitHub destination was inspected. Nothing was pushed. Repository and deployment instructions below are for a later authorized rollout.
+
 ## 1. What was built
 
 One Next.js app with a client portal and Superadmin portal, Better Auth, MySQL/Prisma, packages and overrides, invitations, a server-only Manyreach adapter, campaign and resource management, inbox replies, analytics, and database jobs invoked by cron. See the implemented-feature inventory in [README.md](README.md) and its explicit counterpart in [RELEASE_GATES.md](RELEASE_GATES.md).
