@@ -30,6 +30,7 @@ import {
 import { api } from "@/lib/browser-api";
 import { Button } from "./ui/button";
 import { defaultBranding } from "@/lib/branding";
+import type { ClientPreview } from "@/lib/client-preview";
 const clientNav = [
   ["Dashboard", "", LayoutDashboard, ""],
   ["Campaigns", "campaigns", Send, "campaigns.view"],
@@ -58,19 +59,26 @@ export function Shell({
   children,
   admin = false,
   name,
+  preview,
 }: {
   children: React.ReactNode;
   admin?: boolean;
   name: string;
+  preview?: ClientPreview;
 }) {
   const path = usePathname(),
     [open, setOpen] = useState(false);
-  const { data: ctx } = useQuery({
+  const { data: liveContext } = useQuery({
     queryKey: ["context"],
     queryFn: () => api("/api/portal/context"),
-    enabled: !admin,
+    enabled: !admin && !preview,
   });
-  const base = admin ? "/admin" : "/app";
+  const ctx = preview || liveContext;
+  const base = preview
+    ? `/admin/client-preview/${preview.id}`
+    : admin
+      ? "/admin"
+      : "/app";
   const brandQuery = useQuery({
     queryKey: ["branding"],
     queryFn: () => api("/api/branding"),
@@ -131,8 +139,17 @@ export function Shell({
             .map(([label, slug, Icon]) => (
               <Link
                 key={label}
-                href={`${base}${slug ? `/${slug}` : ""}`}
-                onClick={() => setOpen(false)}
+                href={preview ? base : `${base}${slug ? `/${slug}` : ""}`}
+                aria-disabled={!!preview && !!slug}
+                title={
+                  preview && slug
+                    ? "Navigation is available in the active client workspace."
+                    : undefined
+                }
+                onClick={(e) => {
+                  if (preview) e.preventDefault();
+                  setOpen(false);
+                }}
                 className={current === label ? "active" : ""}
               >
                 <Icon size={19} />
@@ -189,10 +206,27 @@ export function Shell({
           </div>
           <span className="workspace-indicator">
             <ShieldCheck size={15} />
-            {admin ? "Superadmin access" : "Private workspace"}
+            {preview
+              ? "Client dashboard preview"
+              : admin
+                ? "Superadmin access"
+                : "Private workspace"}
           </span>
         </header>
-        {ctx?.impersonating && (
+        {preview && (
+          <div className="impersonation">
+            <span>
+              Preview only · {preview.company} · Workspace activation and
+              sending are unchanged.
+            </span>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/admin/clients/${preview.id}`}>
+                Back to client setup
+              </Link>
+            </Button>
+          </div>
+        )}
+        {!preview && ctx?.impersonating && (
           <div className="impersonation">
             Viewing as {ctx.company}
             <Button

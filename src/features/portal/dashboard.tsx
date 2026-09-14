@@ -23,17 +23,24 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useContext, useLive } from "./hooks";
+import type { ClientPreview } from "@/lib/client-preview";
 
-export function Dashboard() {
-  const { data: ctx } = useContext();
-  const overview = useLive("/api/portal/overview", ctx?.poll.dashboard || 45);
+export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
+  const context = useContext(!preview);
+  const ctx = preview ? { ...preview, poll: { dashboard: 45 } } : context.data;
+  const overview = useLive(
+    "/api/portal/overview",
+    ctx?.poll.dashboard || 45,
+    !preview,
+  );
+  const overviewData = preview || overview.data;
   const campaigns = useQuery({
     queryKey: ["dashboard-campaigns"],
     queryFn: () => api("/api/portal/campaigns?limit=5"),
-    enabled: !!ctx?.permissions["campaigns.view"],
+    enabled: !preview && !!ctx?.permissions["campaigns.view"],
     refetchInterval: Math.max(30, ctx?.poll.dashboard || 45) * 1000,
   });
-  const values = overview.data?.snapshot?.values;
+  const values = overviewData?.snapshot?.values;
   const cards = [
     ["Campaigns", values?.campaigns, Send],
     ["Connected senders", values?.senders, Mail],
@@ -47,14 +54,16 @@ export function Dashboard() {
         title={`Welcome back${ctx?.name ? `, ${ctx.name.split(" ")[0]}` : ""}`}
         description="A clear view of your outreach, all in one place."
       >
-        <Refresh
-          onClick={() => {
-            overview.refetch();
-            campaigns.refetch();
-          }}
-          busy={overview.isFetching}
-        />
-        {ctx?.permissions["campaigns.create"] && (
+        {!preview && (
+          <Refresh
+            onClick={() => {
+              overview.refetch();
+              campaigns.refetch();
+            }}
+            busy={overview.isFetching}
+          />
+        )}
+        {!preview && ctx?.permissions["campaigns.create"] && (
           <Button asChild>
             <Link href="/app/campaigns">
               <Plus size={17} />
@@ -73,7 +82,7 @@ export function Dashboard() {
           <ArrowUpRight size={42} />
         </div>
       </div>
-      {overview.error && <ErrorBox error={overview.error} />}
+      {!preview && overview.error && <ErrorBox error={overview.error} />}
       <div className="metric-grid">
         {cards.map(([label, value, Icon]) => (
           <div className="metric-card" key={label}>
@@ -96,13 +105,20 @@ export function Dashboard() {
         <section>
           <div className="section-title">
             <h2>Campaigns at a glance</h2>
-            {ctx?.permissions["campaigns.view"] && (
+            {!preview && ctx?.permissions["campaigns.view"] && (
               <Link href="/app/campaigns" className="text-link">
                 View campaigns <ArrowUpRight size={15} />
               </Link>
             )}
           </div>
-          {ctx?.permissions["campaigns.view"] ? (
+          {preview ? (
+            <div className="panel">
+              <Empty
+                title="Campaigns appear here"
+                description="Live campaigns load after workspace activation and connection. This preview shows the dashboard layout and saved workspace information."
+              />
+            </div>
+          ) : ctx?.permissions["campaigns.view"] ? (
             <DataTable
               loading={campaigns.isLoading}
               error={campaigns.error}
@@ -138,8 +154,8 @@ export function Dashboard() {
             </div>
           )}
           <div className="snapshot-note">
-            {overview.data?.snapshot
-              ? `Usage captured ${new Date(overview.data.snapshot.capturedAt).toLocaleString()}`
+            {overviewData?.snapshot
+              ? `Usage captured ${new Date(overviewData.snapshot.capturedAt).toLocaleString()}`
               : "Usage totals appear after the first scheduled sync."}
           </div>
         </section>
@@ -149,10 +165,10 @@ export function Dashboard() {
             <span className="small muted">Workspace</span>
           </div>
           <div className="panel activity-panel">
-            {overview.isLoading ? (
+            {!preview && overview.isLoading ? (
               <Loading />
-            ) : overview.data?.activity?.length ? (
-              overview.data.activity.map((a: any) => (
+            ) : overviewData?.activity?.length ? (
+              overviewData.activity.map((a: any) => (
                 <div className="activity-item" key={a.id}>
                   <span className="activity-icon">
                     <Check size={14} />
@@ -172,26 +188,28 @@ export function Dashboard() {
           </div>
         </section>
       </div>
-      <section className="quick-links">
-        <Link href="/app/usage">
-          <Layers />
-          <div>
-            <h3>Your package & usage</h3>
-            <p>Understand your workspace limits.</p>
-          </div>
-          <ArrowUpRight />
-        </Link>
-        {ctx?.permissions["inbox.view"] && (
-          <Link href="/app/inbox">
-            <MessageSquare />
+      {!preview && (
+        <section className="quick-links">
+          <Link href="/app/usage">
+            <Layers />
             <div>
-              <h3>Continue a conversation</h3>
-              <p>Read and respond to incoming replies.</p>
+              <h3>Your package & usage</h3>
+              <p>Understand your workspace limits.</p>
             </div>
             <ArrowUpRight />
           </Link>
-        )}
-      </section>
+          {ctx?.permissions["inbox.view"] && (
+            <Link href="/app/inbox">
+              <MessageSquare />
+              <div>
+                <h3>Continue a conversation</h3>
+                <p>Read and respond to incoming replies.</p>
+              </div>
+              <ArrowUpRight />
+            </Link>
+          )}
+        </section>
+      )}
     </>
   );
 }

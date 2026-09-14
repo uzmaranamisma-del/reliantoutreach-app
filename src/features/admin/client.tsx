@@ -57,6 +57,12 @@ export function ClientDetail({ id }: { id: string }) {
         description={`${c.firstName} ${c.lastName} · ${c.email}`}
       >
         <Status value={c.status} />
+        <Button asChild variant="outline">
+          <Link href={`/admin/client-preview/${c.id}`}>
+            <Eye size={15} />
+            Preview client dashboard
+          </Link>
+        </Button>
         <Button variant="outline" onClick={() => setDialog("edit")}>
           Edit client
         </Button>
