@@ -7,6 +7,8 @@
 5. The open panel advances work automatically. Configured cron continues work when the panel is closed. A failed sync does not activate a new draft or queue its invitation. Correct the displayed problem and retry. SMTP failures are not blindly replayed; check delivery and use **Resend owner invitation** if needed.
 6. After activation, use **Login as client** to inspect the real client portal. The owner sets their password using the invitation. Data is loaded from the isolated provider account with pagination; there are no demo records. The portal includes campaigns and analytics, prospects/custom fields/tags, lists and members, senders/settings, reply history, team and the assigned package's prices/services/limits. Passwords and raw provider identifiers are excluded.
 
+Superadmin's **Preview client dashboard** also has working read-only tabs for Dashboard, Campaigns, Inbox, Prospects, Lists, Senders, Analytics, Team, Usage, Notifications and Settings. Before connection, provider-backed tabs clearly ask for Sync & Invite; after connection they load real tenant-scoped data without enabling mutations.
+
 Technical allowances for the three email plans are unlimited as approved on September 15, 2026. Website monthly email capacities remain finite. New campaign starts and manual replies remain blocked until authoritative monthly-cap enforcement is resolved; this does not hide existing data. See RELEASE_GATES.md for the remaining production requirements.
 
 No repository push or deployment is authorized at this checkpoint. A successful automated/local test is not evidence of live Manyreach or SMTP acceptance.

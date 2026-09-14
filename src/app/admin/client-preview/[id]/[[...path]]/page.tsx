@@ -4,12 +4,13 @@ import { db } from "@/lib/db";
 import { permissions, getEffectivePermission } from "@/lib/permissions";
 import { Shell } from "@/components/shell";
 import { Dashboard } from "@/features/portal/dashboard";
+import { PreviewPortal } from "@/features/portal/preview";
 import type { ClientPreview } from "@/lib/client-preview";
 export const dynamic = "force-dynamic";
 export default async function Page({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; path?: string[] }>;
 }) {
   let who;
   try {
@@ -17,10 +18,14 @@ export default async function Page({
   } catch {
     redirect("/login");
   }
-  const { id } = await params;
+  const { id, path = [] } = await params;
   const client = await db.client.findUnique({
     where: { id },
-    include: { package: { include: { features: true } }, permissions: true },
+    include: {
+      package: { include: { features: true } },
+      permissions: true,
+      mapping: { select: { clientId: true } },
+    },
   });
   if (!client) notFound();
   const [snapshot, activity] = await Promise.all([
@@ -39,6 +44,7 @@ export default async function Page({
     name: `${client.firstName} ${client.lastName}`.trim(),
     company: client.company,
     package: client.package.name,
+    connected: !!client.mapping,
     permissions: Object.fromEntries(
       permissions.map((p) => [
         p,
@@ -61,9 +67,14 @@ export default async function Page({
       createdAt: a.createdAt.toISOString(),
     })),
   };
+  const section = path[0] || "dashboard";
   return (
     <Shell name={who.user.name} preview={preview}>
-      <Dashboard preview={preview} />
+      {section === "dashboard" ? (
+        <Dashboard preview={preview} />
+      ) : (
+        <PreviewPortal preview={preview} section={section} />
+      )}
     </Shell>
   );
 }

@@ -16,12 +16,21 @@ import { agencyRequest } from "@/lib/manyreach/client";
 import { getBranding, saveBranding } from "@/server/settings";
 import { queueOnboarding, onboardingStatus } from "@/server/onboarding";
 import { processJobs } from "@/server/jobs";
+import { clientPreviewData } from "@/server/client-preview-data";
 export const GET = endpoint(async (request, context) => {
   await admin(request);
   const { path } = await context.params;
   const [section, id] = path;
   if (section === "clients" && id && path[2] === "sync")
     return onboardingStatus(id);
+  if (section === "clients" && id && path[2] === "preview") {
+    const previewUrl = new URL(request.url);
+    return clientPreviewData(
+      id,
+      path[3] || "campaigns",
+      Object.fromEntries(previewUrl.searchParams),
+    );
+  }
   if (section === "settings") return getBranding();
   const url = new URL(request.url);
   const page = z.coerce

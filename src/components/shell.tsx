@@ -139,17 +139,8 @@ export function Shell({
             .map(([label, slug, Icon]) => (
               <Link
                 key={label}
-                href={preview ? base : `${base}${slug ? `/${slug}` : ""}`}
-                aria-disabled={!!preview && !!slug}
-                title={
-                  preview && slug
-                    ? "Navigation is available in the active client workspace."
-                    : undefined
-                }
-                onClick={(e) => {
-                  if (preview) e.preventDefault();
-                  setOpen(false);
-                }}
+                href={`${base}${slug ? `/${slug}` : ""}`}
+                onClick={() => setOpen(false)}
                 className={current === label ? "active" : ""}
               >
                 <Icon size={19} />
