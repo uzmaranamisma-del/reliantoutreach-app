@@ -1,0 +1,1702 @@
+{
+  "SequenceUpdate": {
+    "required": null,
+    "properties": {
+      "conditionTimes": {
+        "type": "integer"
+      },
+      "conditionExtra": {
+        "type": "boolean"
+      },
+      "shortName": {
+        "type": "string"
+      },
+      "conditionAction": {
+        "enum": [
+          "Opened",
+          "Clicked",
+          "Bounced",
+          "Unsubscribed",
+          "Converted",
+          "Replied"
+        ],
+        "type": "string"
+      },
+      "conditionReply": {
+        "enum": [
+          "All",
+          "Opened",
+          "NotOpened",
+          "NotReplied",
+          "Replied",
+          "RepliedInterested",
+          "RepliedNotInterested",
+          "RepliedNeutral",
+          "RepliedMaybeLater",
+          "Converted",
+          "NotConverted",
+          "Won",
+          "MeetingBooked",
+          "MeetingCompleted"
+        ],
+        "type": "string"
+      },
+      "conditionOperator": {
+        "enum": [
+          "GreaterThanOrEqual",
+          "LessThanOrEqual",
+          "Equal",
+          "NotEqual",
+          "GreaterThan",
+          "LessThan"
+        ],
+        "type": "string"
+      },
+      "conditionNegate": {
+        "type": "boolean"
+      },
+      "name": {
+        "type": "string"
+      }
+    }
+  },
+  "CampaignUpdate": {
+    "required": null,
+    "properties": {
+      "sendMon": {
+        "type": "boolean"
+      },
+      "trackOpens": {
+        "type": "boolean"
+      },
+      "espMatchType": {
+        "enum": ["None", "MatchSender", "MatchDomain"],
+        "type": "string"
+      },
+      "ccEmails": {
+        "type": "string"
+      },
+      "sendMonAfter": {
+        "type": "integer"
+      },
+      "sendFri": {
+        "type": "boolean"
+      },
+      "scheduleTimeZone": {
+        "type": "string"
+      },
+      "dailyLimitPrioritize": {
+        "enum": ["Initial", "Followup"],
+        "type": "string"
+      },
+      "sendSun": {
+        "type": "boolean"
+      },
+      "delayMinSeconds": {
+        "type": "integer"
+      },
+      "sendTue": {
+        "type": "boolean"
+      },
+      "description": {
+        "type": "string"
+      },
+      "sendUnsubscribeListHeader": {
+        "type": "boolean"
+      },
+      "dailyLimitIncreasePercent": {
+        "type": "integer"
+      },
+      "scheduleSendOnDateMinutes": {
+        "type": "integer"
+      },
+      "deactivateIfMissingPlaceholder": {
+        "type": "boolean"
+      },
+      "replyBccEmails": {
+        "type": "string"
+      },
+      "delayMinMinutes": {
+        "type": "integer"
+      },
+      "replyToEmail": {
+        "type": "string"
+      },
+      "sendWedAfter": {
+        "type": "integer"
+      },
+      "name": {
+        "type": "string"
+      },
+      "trackClicks": {
+        "type": "boolean"
+      },
+      "sendSunAfter": {
+        "type": "integer"
+      },
+      "espMatchEnabled": {
+        "type": "boolean"
+      },
+      "sendSatAfter": {
+        "type": "integer"
+      },
+      "sendFriAfter": {
+        "type": "integer"
+      },
+      "dailyLimitInitial": {
+        "type": "integer"
+      },
+      "sendSat": {
+        "type": "boolean"
+      },
+      "folderId": {
+        "type": "integer"
+      },
+      "dailyLimitIncrease": {
+        "type": "boolean"
+      },
+      "dailyLimit": {
+        "type": "integer"
+      },
+      "espLimitToGoogle": {
+        "type": "boolean"
+      },
+      "prospectValue": {
+        "type": "integer"
+      },
+      "body": {
+        "type": "string"
+      },
+      "espLimitToOther": {
+        "type": "boolean"
+      },
+      "sendSatBefore": {
+        "type": "integer"
+      },
+      "espLimitToMicrosoft": {
+        "type": "boolean"
+      },
+      "dailyLimitInitialEnabled": {
+        "type": "boolean"
+      },
+      "textOnlyEmails": {
+        "type": "boolean"
+      },
+      "dailyLimitIncreaseToMax": {
+        "type": "integer"
+      },
+      "scheduleSending": {
+        "type": "boolean"
+      },
+      "fromEmails": {
+        "type": "string"
+      },
+      "subject": {
+        "type": "string"
+      },
+      "sendFriBefore": {
+        "type": "integer"
+      },
+      "sendThu": {
+        "type": "boolean"
+      },
+      "sendThuBefore": {
+        "type": "integer"
+      },
+      "replyCcEmails": {
+        "type": "string"
+      },
+      "dailyLimitOnDate": {
+        "type": "string"
+      },
+      "espLimitEnabled": {
+        "type": "boolean"
+      },
+      "scheduleSendOnDate": {
+        "type": "string"
+      },
+      "scheduleSendOnDateHours": {
+        "type": "integer"
+      },
+      "dailyLimitPer": {
+        "enum": ["Sender", "Campaign"],
+        "type": "string"
+      },
+      "dailyLimitWhichEmailsCount": {
+        "enum": ["All", "Initial"],
+        "type": "string"
+      },
+      "fromName": {
+        "type": "string"
+      },
+      "sendTueBefore": {
+        "type": "integer"
+      },
+      "sendWedBefore": {
+        "type": "integer"
+      },
+      "sendSunBefore": {
+        "type": "integer"
+      },
+      "useProspectsTimeZone": {
+        "type": "boolean"
+      },
+      "bccEmails": {
+        "type": "string"
+      },
+      "stopCoworkersOnReply": {
+        "type": "boolean"
+      },
+      "sendWed": {
+        "type": "boolean"
+      },
+      "sendThuAfter": {
+        "type": "integer"
+      },
+      "scheduleSendOnDateEnabled": {
+        "type": "boolean"
+      },
+      "sendTueAfter": {
+        "type": "integer"
+      },
+      "sendMonBefore": {
+        "type": "integer"
+      }
+    }
+  },
+  "ListCreate": {
+    "required": ["title"],
+    "properties": {
+      "folderId": {
+        "type": "integer",
+        "maximum": 2147483647,
+        "minimum": 1
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      }
+    }
+  },
+  "SenderCreate": {
+    "required": [
+      "email",
+      "dailyLimit",
+      "customSmtpServer",
+      "customSmtpPort",
+      "customSmtpPass",
+      "customImapServer",
+      "customImapPort",
+      "customImapPass"
+    ],
+    "properties": {
+      "customImapPass": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "delayMin": {
+        "type": "integer"
+      },
+      "warmupReplyPercent": {
+        "type": "integer"
+      },
+      "senderCustom8": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "warmupSkipWeekends": {
+        "type": "boolean"
+      },
+      "customImapUsername": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "signature": {
+        "type": "string"
+      },
+      "customImapServer": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "email": {
+        "type": "string",
+        "maxLength": 100,
+        "minLength": 0
+      },
+      "warmupDailyLimitIncrease": {
+        "type": "boolean"
+      },
+      "senderCustom5": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "customSmtpPass": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "warmupDailyLimit": {
+        "type": "integer"
+      },
+      "senderCustom9": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "replyTo": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "dailyLimitIncreaseToMax": {
+        "type": "integer"
+      },
+      "firstName": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "customSmtpPort": {
+        "type": "integer"
+      },
+      "senderCustom10": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "senderCustom6": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "customSmtpServer": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "fromName": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "customSmtpUsername": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "dailyLimit": {
+        "type": "integer",
+        "maximum": 10000,
+        "minimum": 1
+      },
+      "customWarmupTag": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 0
+      },
+      "warmupDailyLimitIncreaseToMax": {
+        "type": "integer",
+        "maximum": 10000,
+        "minimum": 0
+      },
+      "senderCustom4": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "warmupDailyLimitIncreasePercent": {
+        "type": "integer",
+        "maximum": 10000,
+        "minimum": 0
+      },
+      "senderCustom7": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "senderCustom2": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "dailyLimitIncreasePercent": {
+        "type": "integer"
+      },
+      "senderCustom1": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "dailyLimitIncrease": {
+        "type": "boolean"
+      },
+      "trackingDomain": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "lastName": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "warmup": {
+        "type": "boolean"
+      },
+      "customImapPort": {
+        "type": "integer",
+        "maximum": 65535,
+        "minimum": 1
+      },
+      "delayMinMinutes": {
+        "type": "integer"
+      },
+      "senderCustom3": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "folder": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 0
+      }
+    }
+  },
+  "ProspectUpdate": {
+    "required": null,
+    "properties": {
+      "personalSocial": {
+        "type": "string"
+      },
+      "custom16": {
+        "type": "string"
+      },
+      "custom12": {
+        "type": "string"
+      },
+      "companySize": {
+        "type": "string"
+      },
+      "baseListId": {
+        "type": "integer"
+      },
+      "custom8": {
+        "type": "string"
+      },
+      "state": {
+        "type": "string"
+      },
+      "custom7": {
+        "type": "string"
+      },
+      "custom18": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "companySocial": {
+        "type": "string"
+      },
+      "custom9": {
+        "type": "string"
+      },
+      "city": {
+        "type": "string"
+      },
+      "custom20": {
+        "type": "string"
+      },
+      "custom19": {
+        "type": "string"
+      },
+      "custom11": {
+        "type": "string"
+      },
+      "custom17": {
+        "type": "string"
+      },
+      "custom10": {
+        "type": "string"
+      },
+      "location": {
+        "type": "string"
+      },
+      "website": {
+        "type": "string"
+      },
+      "firstName": {
+        "type": "string"
+      },
+      "custom14": {
+        "type": "string"
+      },
+      "country": {
+        "type": "string"
+      },
+      "custom5": {
+        "type": "string"
+      },
+      "sendingActive": {
+        "type": "boolean"
+      },
+      "phone": {
+        "type": "string"
+      },
+      "sendingStatus": {
+        "enum": [
+          "Unknown",
+          "EspMatchNotFound",
+          "EspNotAllowed",
+          "NoWarmup",
+          "NotReceiving",
+          "WarmupLimits",
+          "SendingLimits",
+          "NoSender",
+          "Stuck",
+          "MailboxInexistent",
+          "EmptySubject",
+          "EmptyBody",
+          "MissingPlaceholder",
+          "Invalid",
+          "Blacklisted",
+          "Stopped",
+          "Unsub",
+          "BounceHard",
+          "BounceSoft",
+          "AutoNolonger",
+          "AutoOoo",
+          "AutoReply",
+          "CollegueReplied",
+          "SenderDisconnected",
+          "Paused",
+          "InsufficientCredit",
+          "ScheduleInactive",
+          "NotInterested",
+          "NotSet",
+          "Neutral",
+          "MaybeLater",
+          "Interested",
+          "MeetingBooked",
+          "MeetingCompleted",
+          "Won",
+          "Subbed"
+        ],
+        "type": "string"
+      },
+      "custom1": {
+        "type": "string"
+      },
+      "custom13": {
+        "type": "string"
+      },
+      "domain": {
+        "type": "string"
+      },
+      "custom3": {
+        "type": "string"
+      },
+      "custom15": {
+        "type": "string"
+      },
+      "jobPosition": {
+        "type": "string"
+      },
+      "custom4": {
+        "type": "string"
+      },
+      "screenshotUrl": {
+        "type": "string"
+      },
+      "company": {
+        "type": "string"
+      },
+      "industry": {
+        "type": "string"
+      },
+      "logoUrl": {
+        "type": "string"
+      },
+      "custom2": {
+        "type": "string"
+      },
+      "lastName": {
+        "type": "string"
+      },
+      "customImageUrl": {
+        "type": "string"
+      },
+      "icebreaker": {
+        "type": "string"
+      },
+      "custom6": {
+        "type": "string"
+      }
+    }
+  },
+  "CampaignCreate": {
+    "required": ["name"],
+    "properties": {
+      "sendMon": {
+        "type": "boolean"
+      },
+      "trackOpens": {
+        "type": "boolean"
+      },
+      "espMatchType": {
+        "enum": ["None", "MatchSender", "MatchDomain"],
+        "type": "string"
+      },
+      "ccEmails": {
+        "type": "string"
+      },
+      "sendMonAfter": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "sendFri": {
+        "type": "boolean"
+      },
+      "scheduleTimeZone": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 0
+      },
+      "dailyLimitPrioritize": {
+        "enum": ["Initial", "Followup"],
+        "type": "string"
+      },
+      "sendSun": {
+        "type": "boolean"
+      },
+      "delayMinSeconds": {
+        "type": "integer",
+        "maximum": 290,
+        "minimum": 1
+      },
+      "sendTue": {
+        "type": "boolean"
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "sendUnsubscribeListHeader": {
+        "type": "boolean"
+      },
+      "dailyLimitIncreasePercent": {
+        "type": "integer",
+        "maximum": 10000,
+        "minimum": 0
+      },
+      "scheduleSendOnDateMinutes": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "deactivateIfMissingPlaceholder": {
+        "type": "boolean"
+      },
+      "replyBccEmails": {
+        "type": "string"
+      },
+      "delayMinMinutes": {
+        "type": "integer",
+        "maximum": 290,
+        "minimum": 1
+      },
+      "replyToEmail": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "sendWedAfter": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "trackClicks": {
+        "type": "boolean"
+      },
+      "sendSunAfter": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "espMatchEnabled": {
+        "type": "boolean"
+      },
+      "sendSatAfter": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "sendFriAfter": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "dailyLimitInitial": {
+        "type": "integer",
+        "maximum": 10000,
+        "minimum": 1
+      },
+      "sendSat": {
+        "type": "boolean"
+      },
+      "folderId": {
+        "type": "integer",
+        "maximum": 2147483647,
+        "minimum": 1
+      },
+      "dailyLimitIncrease": {
+        "type": "boolean"
+      },
+      "dailyLimit": {
+        "type": "integer",
+        "maximum": 10000,
+        "minimum": 1
+      },
+      "espLimitToGoogle": {
+        "type": "boolean"
+      },
+      "prospectValue": {
+        "type": "integer",
+        "maximum": 2147483647,
+        "minimum": 0
+      },
+      "body": {
+        "type": "string"
+      },
+      "espLimitToOther": {
+        "type": "boolean"
+      },
+      "sendSatBefore": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "espLimitToMicrosoft": {
+        "type": "boolean"
+      },
+      "dailyLimitInitialEnabled": {
+        "type": "boolean"
+      },
+      "textOnlyEmails": {
+        "type": "boolean"
+      },
+      "dailyLimitIncreaseToMax": {
+        "type": "integer",
+        "maximum": 10000,
+        "minimum": 0
+      },
+      "scheduleSending": {
+        "type": "boolean"
+      },
+      "fromEmails": {
+        "type": "string"
+      },
+      "subject": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "sendFriBefore": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "sendThu": {
+        "type": "boolean"
+      },
+      "sendThuBefore": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "replyCcEmails": {
+        "type": "string"
+      },
+      "dailyLimitOnDate": {
+        "type": "string"
+      },
+      "espLimitEnabled": {
+        "type": "boolean"
+      },
+      "scheduleSendOnDate": {
+        "type": "string"
+      },
+      "scheduleSendOnDateHours": {
+        "type": "integer",
+        "maximum": 23,
+        "minimum": 0
+      },
+      "dailyLimitPer": {
+        "enum": ["Sender", "Campaign"],
+        "type": "string"
+      },
+      "dailyLimitWhichEmailsCount": {
+        "enum": ["All", "Initial"],
+        "type": "string"
+      },
+      "fromName": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "sendTueBefore": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "sendWedBefore": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "sendSunBefore": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "useProspectsTimeZone": {
+        "type": "boolean"
+      },
+      "bccEmails": {
+        "type": "string"
+      },
+      "stopCoworkersOnReply": {
+        "type": "boolean"
+      },
+      "sendWed": {
+        "type": "boolean"
+      },
+      "sendThuAfter": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "scheduleSendOnDateEnabled": {
+        "type": "boolean"
+      },
+      "sendTueAfter": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      },
+      "sendMonBefore": {
+        "type": "integer",
+        "maximum": 1439,
+        "minimum": 0
+      }
+    }
+  },
+  "ProspectCreate": {
+    "required": ["email"],
+    "properties": {
+      "personalSocial": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom16": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom12": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "companySize": {
+        "type": "string",
+        "maxLength": 32,
+        "minLength": 0
+      },
+      "baseListId": {
+        "type": "integer",
+        "maximum": 2147483647,
+        "minimum": 1
+      },
+      "custom8": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "state": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "custom7": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom18": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "notes": {
+        "type": "string"
+      },
+      "companySocial": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom9": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "city": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom20": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom19": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom11": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom17": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom10": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "location": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "website": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "firstName": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom14": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "country": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom5": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "sendingActive": {
+        "type": "boolean"
+      },
+      "phone": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "sendingStatus": {
+        "enum": [
+          "Unknown",
+          "EspMatchNotFound",
+          "EspNotAllowed",
+          "NoWarmup",
+          "NotReceiving",
+          "WarmupLimits",
+          "SendingLimits",
+          "NoSender",
+          "Stuck",
+          "MailboxInexistent",
+          "EmptySubject",
+          "EmptyBody",
+          "MissingPlaceholder",
+          "Invalid",
+          "Blacklisted",
+          "Stopped",
+          "Unsub",
+          "BounceHard",
+          "BounceSoft",
+          "AutoNolonger",
+          "AutoOoo",
+          "AutoReply",
+          "CollegueReplied",
+          "SenderDisconnected",
+          "Paused",
+          "InsufficientCredit",
+          "ScheduleInactive",
+          "NotInterested",
+          "NotSet",
+          "Neutral",
+          "MaybeLater",
+          "Interested",
+          "MeetingBooked",
+          "MeetingCompleted",
+          "Won",
+          "Subbed"
+        ],
+        "type": "string"
+      },
+      "custom1": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom13": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "domain": {
+        "type": "string",
+        "maxLength": 180,
+        "minLength": 0
+      },
+      "custom3": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "email": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "custom15": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "jobPosition": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom4": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "screenshotUrl": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "company": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "industry": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "logoUrl": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "custom2": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "lastName": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "customImageUrl": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "icebreaker": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "custom6": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      }
+    }
+  },
+  "ClientspaceCreate": {
+    "required": ["title"],
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "creditAmount": {
+        "type": "integer"
+      },
+      "autoAllocate": {
+        "type": "boolean"
+      },
+      "separateCredits": {
+        "type": "boolean"
+      }
+    }
+  },
+  "FollowupCreate": {
+    "required": ["waitMin", "waitUnits"],
+    "properties": {
+      "waitUnits": {
+        "enum": ["Minutes", "Hours", "Days"],
+        "type": "string"
+      },
+      "useOriginalSubject": {
+        "type": "boolean"
+      },
+      "replyInThread": {
+        "type": "boolean"
+      },
+      "subject": {
+        "type": "string",
+        "maxLength": 1024,
+        "minLength": 0
+      },
+      "waitMin": {
+        "type": "integer",
+        "maximum": 1000,
+        "minimum": 1
+      },
+      "replyInThreadToFollowupId": {
+        "type": "integer",
+        "maximum": 9.223372036854776e18,
+        "minimum": 1.0
+      },
+      "body": {
+        "type": "string"
+      },
+      "sendInSameThread": {
+        "type": "boolean"
+      }
+    }
+  },
+  "ProspectBulkCreate": {
+    "required": ["email"],
+    "properties": {
+      "personalSocial": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom16": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom12": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "companySize": {
+        "type": "string",
+        "maxLength": 32,
+        "minLength": 0
+      },
+      "custom8": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "state": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "custom7": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom18": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "notes": {
+        "type": "string"
+      },
+      "companySocial": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom9": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "city": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom20": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom19": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom11": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom17": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom10": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "location": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "website": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "firstName": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom14": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "country": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom5": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "sendingActive": {
+        "type": "boolean"
+      },
+      "phone": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "sendingStatus": {
+        "enum": [
+          "Unknown",
+          "EspMatchNotFound",
+          "EspNotAllowed",
+          "NoWarmup",
+          "NotReceiving",
+          "WarmupLimits",
+          "SendingLimits",
+          "NoSender",
+          "Stuck",
+          "MailboxInexistent",
+          "EmptySubject",
+          "EmptyBody",
+          "MissingPlaceholder",
+          "Invalid",
+          "Blacklisted",
+          "Stopped",
+          "Unsub",
+          "BounceHard",
+          "BounceSoft",
+          "AutoNolonger",
+          "AutoOoo",
+          "AutoReply",
+          "CollegueReplied",
+          "SenderDisconnected",
+          "Paused",
+          "InsufficientCredit",
+          "ScheduleInactive",
+          "NotInterested",
+          "NotSet",
+          "Neutral",
+          "MaybeLater",
+          "Interested",
+          "MeetingBooked",
+          "MeetingCompleted",
+          "Won",
+          "Subbed"
+        ],
+        "type": "string"
+      },
+      "custom1": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "custom13": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "domain": {
+        "type": "string",
+        "maxLength": 180,
+        "minLength": 0
+      },
+      "custom3": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "email": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "custom15": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "jobPosition": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "custom4": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "screenshotUrl": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "company": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "industry": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "logoUrl": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "custom2": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      },
+      "lastName": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "customImageUrl": {
+        "type": "string",
+        "maxLength": 256,
+        "minLength": 0
+      },
+      "icebreaker": {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 0
+      },
+      "custom6": {
+        "type": "string",
+        "maxLength": 2000,
+        "minLength": 0
+      }
+    }
+  },
+  "ListUpdate": {
+    "required": null,
+    "properties": {
+      "folderId": {
+        "type": "integer"
+      },
+      "title": {
+        "type": "string"
+      }
+    }
+  },
+  "SenderUpdate": {
+    "required": null,
+    "properties": {
+      "customImapPass": {
+        "type": "string"
+      },
+      "delayMin": {
+        "type": "integer"
+      },
+      "warmupReplyPercent": {
+        "type": "integer"
+      },
+      "senderCustom8": {
+        "type": "string"
+      },
+      "warmupSkipWeekends": {
+        "type": "boolean"
+      },
+      "customImapUsername": {
+        "type": "string"
+      },
+      "customImapServer": {
+        "type": "string"
+      },
+      "signature": {
+        "type": "string"
+      },
+      "warmupDailyLimitIncrease": {
+        "type": "boolean"
+      },
+      "senderCustom5": {
+        "type": "string"
+      },
+      "customSmtpPass": {
+        "type": "string"
+      },
+      "warmupDailyLimit": {
+        "type": "integer"
+      },
+      "senderCustom9": {
+        "type": "string"
+      },
+      "replyTo": {
+        "type": "string"
+      },
+      "dailyLimitIncreaseToMax": {
+        "type": "integer"
+      },
+      "firstName": {
+        "type": "string"
+      },
+      "customSmtpPort": {
+        "type": "integer"
+      },
+      "senderCustom10": {
+        "type": "string"
+      },
+      "senderCustom6": {
+        "type": "string"
+      },
+      "customSmtpServer": {
+        "type": "string"
+      },
+      "fromName": {
+        "type": "string"
+      },
+      "customSmtpUsername": {
+        "type": "string"
+      },
+      "dailyLimit": {
+        "type": "integer"
+      },
+      "customWarmupTag": {
+        "type": "string"
+      },
+      "warmupDailyLimitIncreaseToMax": {
+        "type": "integer"
+      },
+      "senderCustom4": {
+        "type": "string"
+      },
+      "warmupDailyLimitIncreasePercent": {
+        "type": "integer"
+      },
+      "senderCustom7": {
+        "type": "string"
+      },
+      "senderCustom2": {
+        "type": "string"
+      },
+      "dailyLimitIncreasePercent": {
+        "type": "integer"
+      },
+      "senderCustom1": {
+        "type": "string"
+      },
+      "dailyLimitIncrease": {
+        "type": "boolean"
+      },
+      "trackingDomain": {
+        "type": "string"
+      },
+      "lastName": {
+        "type": "string"
+      },
+      "warmup": {
+        "type": "boolean"
+      },
+      "customImapPort": {
+        "type": "integer"
+      },
+      "delayMinMinutes": {
+        "type": "integer"
+      },
+      "senderCustom3": {
+        "type": "string"
+      },
+      "folder": {
+        "type": "string"
+      }
+    }
+  },
+  "FollowupUpdate": {
+    "required": null,
+    "properties": {
+      "waitUnits": {
+        "enum": ["Minutes", "Hours", "Days"],
+        "type": "string"
+      },
+      "useOriginalSubject": {
+        "type": "boolean"
+      },
+      "replyInThread": {
+        "type": "boolean"
+      },
+      "subject": {
+        "type": "string"
+      },
+      "waitMin": {
+        "type": "integer"
+      },
+      "replyInThreadToFollowupId": {
+        "type": "integer"
+      },
+      "body": {
+        "type": "string"
+      },
+      "sendInSameThread": {
+        "type": "boolean"
+      }
+    }
+  },
+  "SequenceCreate": {
+    "required": null,
+    "properties": {
+      "conditionTimes": {
+        "type": "integer",
+        "maximum": 100,
+        "minimum": 0
+      },
+      "conditionExtra": {
+        "type": "boolean"
+      },
+      "shortName": {
+        "type": "string",
+        "maxLength": 8,
+        "minLength": 0
+      },
+      "conditionAction": {
+        "enum": [
+          "Opened",
+          "Clicked",
+          "Bounced",
+          "Unsubscribed",
+          "Converted",
+          "Replied"
+        ],
+        "type": "string"
+      },
+      "conditionReply": {
+        "enum": [
+          "All",
+          "Opened",
+          "NotOpened",
+          "NotReplied",
+          "Replied",
+          "RepliedInterested",
+          "RepliedNotInterested",
+          "RepliedNeutral",
+          "RepliedMaybeLater",
+          "Converted",
+          "NotConverted",
+          "Won",
+          "MeetingBooked",
+          "MeetingCompleted"
+        ],
+        "type": "string"
+      },
+      "conditionOperator": {
+        "enum": [
+          "GreaterThanOrEqual",
+          "LessThanOrEqual",
+          "Equal",
+          "NotEqual",
+          "GreaterThan",
+          "LessThan"
+        ],
+        "type": "string"
+      },
+      "conditionNegate": {
+        "type": "boolean"
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 0
+      }
+    }
+  }
+}

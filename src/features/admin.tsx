@@ -1,0 +1,16 @@
+"use client";
+import { ClientDetail } from "./admin/client";
+import { Clients } from "./admin/clients";
+import { Overview } from "./admin/overview";
+import { Packages } from "./admin/packages";
+import { AdminRecords } from "./admin/records";
+import { System } from "./admin/system";
+export function AdminPortal({ path }: { path: string[] }) {
+  const section = path[0] || "overview";
+  if (section === "overview") return <Overview />;
+  if (section === "packages") return <Packages />;
+  if (section === "clients" && path[1]) return <ClientDetail id={path[1]} />;
+  if (section === "clients") return <Clients />;
+  if (section === "system") return <System />;
+  return <AdminRecords kind={section} />;
+}
