@@ -106,8 +106,9 @@ export function ClientSync({
           />
         </label>
         <p className="muted small">
-          The clientspace is detected from its key. Agency-wide keys are not
-          accepted here.
+          You may use this client&apos;s isolated key. An agency key is also accepted
+          when Manyreach has exactly one Subaccount with the same name as this
+          client.
         </p>
         {state && !state.smtpConfigured && (
           <p className="notice">

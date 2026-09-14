@@ -27,6 +27,70 @@ function readyPackage(pkg: {
       "Choose an active email package with reviewed limits.",
     );
 }
+
+async function resolveIsolatedKey(
+  suppliedKey: string,
+  clientId: string,
+  company: string,
+) {
+  const bucket = `onboarding:${clientId}`;
+  let account = await providerRequest(suppliedKey, bucket, "/account");
+  if (String(account.keyType).toLowerCase() === "clientspace")
+    return { apiKey: suppliedKey, providerId: account.id };
+
+  let cursor: string | number | undefined;
+  const matches: any[] = [];
+  do {
+    const page = await providerRequest<any>(
+      suppliedKey,
+      bucket,
+      "/clientspaces",
+      "GET",
+      undefined,
+      { limit: 100, startingAfter: cursor },
+    );
+    if (!Array.isArray(page.items) || !page.pagination)
+      throw new AppError(502, "Manyreach clientspaces could not be read.");
+    matches.push(
+      ...page.items.filter(
+        (space: any) =>
+          String(space.title || "")
+            .trim()
+            .toLowerCase() === company.trim().toLowerCase(),
+      ),
+    );
+    const next = page.pagination.nextCursor;
+    if (next && String(next) === String(cursor))
+      throw new AppError(502, "Manyreach clientspace pages did not advance.");
+    cursor = next || undefined;
+  } while (cursor);
+  if (matches.length !== 1)
+    throw new AppError(
+      422,
+      `Agency key accepted, but no unique Manyreach Subaccount named "${company}" was found. Create or rename that Subaccount, then retry.`,
+    );
+  const space = matches[0];
+  if (
+    !Number.isSafeInteger(space.clientspaceId) ||
+    space.clientspaceId < 1 ||
+    typeof space.apiKey !== "string" ||
+    space.apiKey.length < 8
+  )
+    throw new AppError(
+      502,
+      "The matching Manyreach Subaccount has no usable API key.",
+    );
+  account = await providerRequest(space.apiKey, bucket, "/account");
+  if (
+    String(account.keyType).toLowerCase() !== "clientspace" ||
+    account.id !== space.clientspaceId
+  )
+    throw new AppError(
+      502,
+      "The matching Manyreach Subaccount identity could not be verified.",
+    );
+  return { apiKey: space.apiKey, providerId: account.id };
+}
 export async function queueOnboarding(
   actorId: string,
   clientId: string,
@@ -61,27 +125,22 @@ export async function queueOnboarding(
     });
     if (existing) return { id: existing.id };
     let providerId = client.mapping?.providerId;
+    let isolatedKey: string | undefined;
     if (data.apiKey) {
-      const account = await providerRequest(
+      const resolved = await resolveIsolatedKey(
         data.apiKey,
-        `onboarding:${clientId}`,
-        "/account",
+        clientId,
+        client.company,
       );
-      if (
-        !Number.isSafeInteger(account.id) ||
-        account.id < 1 ||
-        String(account.keyType).toLowerCase() !== "clientspace"
-      )
-        throw new AppError(
-          422,
-          "Use this client's isolated clientspace API key. An agency-wide key cannot be assigned to one client.",
-        );
-      if (providerId && providerId !== account.id)
+      if (!Number.isSafeInteger(resolved.providerId) || resolved.providerId < 1)
+        throw new AppError(502, "The Manyreach account identity is invalid.");
+      if (providerId && providerId !== resolved.providerId)
         throw new AppError(
           422,
           "This key belongs to a different clientspace than the saved connection.",
         );
-      providerId = account.id;
+      providerId = resolved.providerId;
+      isolatedKey = resolved.apiKey;
       const assigned = await db.manyreachClientspace.findUnique({
         where: { providerId },
       });
@@ -94,15 +153,15 @@ export async function queueOnboarding(
     if (!providerId)
       throw new AppError(422, "Enter the client's Manyreach API key.");
     return db.$transaction(async (tx) => {
-      if (data.apiKey)
+      if (isolatedKey)
         await tx.manyreachClientspace.upsert({
           where: { clientId },
           create: {
             clientId,
             providerId: providerId!,
-            encryptedApiKey: encrypt(data.apiKey),
+            encryptedApiKey: encrypt(isolatedKey),
           },
-          update: { encryptedApiKey: encrypt(data.apiKey), lastError: null },
+          update: { encryptedApiKey: encrypt(isolatedKey), lastError: null },
         });
       const job = await tx.backgroundJob.create({
         data: {

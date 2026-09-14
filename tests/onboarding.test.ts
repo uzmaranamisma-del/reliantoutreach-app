@@ -76,13 +76,45 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({ items: [], pagination: { totalItems: 0 } });
 });
-it("rejects agency-wide API keys before storing a mapping or queuing invitations", async () => {
-  vi.mocked(providerRequest).mockResolvedValue({ id: 10, keyType: "agency" });
-  await expect(
-    queueOnboarding("admin", "A", { key, apiKey: "secret-key" }),
-  ).rejects.toThrow("isolated clientspace");
-  expect(db.manyreachClientspace.upsert).not.toHaveBeenCalled();
+it("resolves a matching Subaccount from an agency key and stores only its isolated key", async () => {
+  vi.mocked(providerRequest)
+    .mockResolvedValueOnce({ id: 1, keyType: "agency" })
+    .mockResolvedValueOnce({
+      items: [{ clientspaceId: 10, title: "Test", apiKey: "isolated-key" }],
+      pagination: { totalItems: 1 },
+    })
+    .mockResolvedValueOnce({ id: 10, keyType: "clientspace" });
+  await queueOnboarding("admin", "A", { key, apiKey: "agency-secret" });
+  expect(db.manyreachClientspace.upsert).toHaveBeenCalledWith(
+    expect.objectContaining({
+      create: expect.objectContaining({
+        providerId: 10,
+        encryptedApiKey: "encrypted:isolated-key",
+      }),
+    }),
+  );
+  expect(
+    JSON.stringify(vi.mocked(db.manyreachClientspace.upsert).mock.calls),
+  ).not.toContain("agency-secret");
   expect(db.invitation.create).not.toHaveBeenCalled();
+});
+it("does not guess a Subaccount when an agency key has no exact company match", async () => {
+  vi.mocked(providerRequest)
+    .mockResolvedValueOnce({ id: 1, keyType: "agency" })
+    .mockResolvedValueOnce({
+      items: [
+        {
+          clientspaceId: 10,
+          title: "Different client",
+          apiKey: "isolated-key",
+        },
+      ],
+      pagination: { totalItems: 1 },
+    });
+  await expect(
+    queueOnboarding("admin", "A", { key, apiKey: "agency-secret" }),
+  ).rejects.toThrow('Subaccount named "Test"');
+  expect(db.manyreachClientspace.upsert).not.toHaveBeenCalled();
 });
 it("rejects a clientspace already assigned to another tenant", async () => {
   vi.mocked(providerRequest).mockResolvedValue({
