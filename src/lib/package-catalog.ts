@@ -1,5 +1,13 @@
 // Published commercial facts verified at https://reliantoutreach.com/#pricing on 2026-09-14.
-// Unpublished technical limits deliberately remain unset until the owner reviews them.
+// Owner approved unlimited technical limits on 2026-09-15; published email capacities remain finite.
+export const approvedTechnicalLimits = [
+  "senders",
+  "campaigns",
+  "prospects",
+  "lists",
+  "teamMembers",
+  "csvRows",
+].map((key) => ({ key, value: -1 }));
 const terms =
   "Minimum 3-month management commitment. Setup is paid upfront. Core infrastructure is included within plan limits. Additional domains, inboxes, data, integrations, LinkedIn outreach, CRM subscriptions and appointment setting may require a custom quote. Meetings and revenue are not guaranteed.";
 export const publishedPackages = [
@@ -115,6 +123,6 @@ export const publishedPackages = [
   commercialTerms: terms,
   sourceUrl: "https://reliantoutreach.com/#pricing",
   displayOrder: i,
-  active: false,
-  requiresLimitReview: p.serviceType !== "LINKEDIN",
+  active: p.serviceType !== "LINKEDIN",
+  requiresLimitReview: false,
 }));

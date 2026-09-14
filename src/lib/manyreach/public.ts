@@ -119,6 +119,20 @@ const fields: Record<string, string[]> = {
     "sendingStatus",
     "sendingActive",
     "createdAt",
+    "city",
+    "state",
+    "website",
+    "phone",
+    "domain",
+    "companySocial",
+    "companySize",
+    "location",
+    "personalSocial",
+    "icebreaker",
+    "notes",
+    "validatedAt",
+    "validationStatus",
+    ...Array.from({ length: 20 }, (_, i) => `custom${i + 1}`),
   ],
   lists: ["title", "createdAt"],
   senders: [
@@ -129,8 +143,36 @@ const fields: Record<string, string[]> = {
     "disconnected",
     "createdAt",
     "delayMinMinutes",
+    "accountType",
+    "replyTo",
+    "firstName",
+    "lastName",
+    "signature",
+    "trackingDomain",
+    "dailyLimitIncrease",
+    "dailyLimitIncreaseToMax",
+    "dailyLimitIncreasePercent",
+    "warmupDailyLimit",
+    "warmupReplyPercent",
+    "warmupSkipWeekends",
+    "customWarmupTag",
+    "warmupDailyLimitIncrease",
+    "warmupDailyLimitIncreaseToMax",
+    "warmupDailyLimitIncreasePercent",
+    "dateDisconnected",
+    "dateWarmupDisconnected",
+    ...Array.from({ length: 10 }, (_, i) => `senderCustom${i + 1}`),
   ],
-  sequences: ["name", "shortName", "conditionReply","conditionExtra","conditionNegate","conditionTimes","conditionAction","conditionOperator"],
+  sequences: [
+    "name",
+    "shortName",
+    "conditionReply",
+    "conditionExtra",
+    "conditionNegate",
+    "conditionTimes",
+    "conditionAction",
+    "conditionOperator",
+  ],
   followups: [
     "subject",
     "body",
@@ -155,9 +197,17 @@ export function publicRecord(
   };
   for (const key of fields[kind] || []) {
     if (record[key] !== undefined)
-      result[key] =
-        key === "body" ? safeHtml(String(record[key] || "")) : record[key];
+      result[key] = ["body", "signature"].includes(key)
+        ? safeHtml(String(record[key] || ""))
+        : record[key];
   }
+  if (
+    ["campaigns", "prospects", "senders"].includes(kind) &&
+    Array.isArray(record.tags)
+  )
+    result.tags = record.tags
+      .filter((tag: any) => typeof tag?.name === "string")
+      .map((tag: any) => tag.name);
   if (kind === "messages")
     result.preview = sanitize(String(record.body || ""), {
       allowedTags: [],

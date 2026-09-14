@@ -17,6 +17,7 @@ import { columnsByKind, resourceFields } from "./config";
 import { useContext, useLive } from "./hooks";
 import { ImportForm, ImportJobs } from "./imports";
 import { EnrollmentForm } from "./enrollment";
+import { ResourceDetails } from "./resource-details";
 type RecordData = Record<string, any>;
 export function Resources({ kind }: { kind: string }) {
   const router = useRouter();
@@ -31,6 +32,7 @@ export function Resources({ kind }: { kind: string }) {
     [selected, setSelected] = useState<any>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [detail, setDetail] = useState<string>();
   const [enroll, setEnroll] = useState<any>(),
     [checked, setChecked] = useState<string[]>([]),
     [cursorPages, setCursorPages] = useState<string[]>([""]);
@@ -183,6 +185,11 @@ export function Resources({ kind }: { kind: string }) {
         }}
         actions={(r) => (
           <>
+            {kind !== "campaigns" && (
+              <Button size="sm" variant="ghost" onClick={() => setDetail(r.id)}>
+                View details
+              </Button>
+            )}
             {kind === "lists" && (
               <Button
                 size="sm"
@@ -228,6 +235,21 @@ export function Resources({ kind }: { kind: string }) {
           </>
         )}
       />
+      <Modal
+        open={!!detail}
+        onOpenChange={(open) => !open && setDetail(undefined)}
+        title={`${singular} details`}
+        wide
+      >
+        {detail && (
+          <ResourceDetails
+            key={detail}
+            kind={kind}
+            id={detail}
+            canViewProspects={!!ctx?.permissions["prospects.view"]}
+          />
+        )}
+      </Modal>
       <Modal
         open={editor !== undefined}
         onOpenChange={(v) => !v && setEditor(undefined)}

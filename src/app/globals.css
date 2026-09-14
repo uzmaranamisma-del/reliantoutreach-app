@@ -1,4 +1,11 @@
 @import "tailwindcss";
+
+.resource-details { display: grid; gap: 0; }
+.resource-details > div { display: grid; grid-template-columns: minmax(130px, 1fr) 2fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+.resource-details dt { color: #64748b; text-transform: capitalize; }
+.resource-details dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.client-setup-grid { display: grid; grid-template-columns: minmax(230px, .8fr) minmax(0, 1.4fr); gap: 24px; align-items: start; }
+@media (max-width: 900px) { .client-setup-grid { grid-template-columns: 1fr; } }
 :root {
   --navy: #0b2a6f;
   --blue: #1d4ed8;

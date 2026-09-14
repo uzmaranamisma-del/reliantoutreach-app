@@ -55,6 +55,19 @@ describe("authorization policy", () => {
   });
 });
 describe("encrypted identifiers", () => {
+  it("exposes contact custom fields and tag names without provider tag IDs", () => {
+    const record = publicRecord("client-A", "prospects", {
+      prospectId: 42,
+      email: "a@example.test",
+      custom20: "Target account",
+      notes: "Follow up",
+      tags: [{ id: 919, name: "Qualified", apiKey: "private" }],
+    });
+    expect(record.custom20).toBe("Target account");
+    expect(record.tags).toEqual(["Qualified"]);
+    expect(JSON.stringify(record)).not.toContain("private");
+    expect(JSON.stringify(record)).not.toContain("919");
+  });
   it("encrypts with a unique nonce and verifies integrity", () => {
     const a = encrypt("secret");
     expect(a).not.toBe(encrypt("secret"));

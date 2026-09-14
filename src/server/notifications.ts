@@ -31,7 +31,7 @@ export async function syncJobNotifications() {
       create: {
         id: `job:${job.id}`,
         clientId: job.clientId!,
-        title: `${job.type === "prospect-import" ? "Prospect import / enrollment" : job.type === "reconcile" ? "Workspace sync" : "Invitation delivery"}: ${job.status}`,
+        title: `${job.type === "prospect-import" ? "Prospect import / enrollment" : job.type === "reconcile" ? "Workspace sync" : job.type === "client-onboarding" ? "Workspace setup" : "Invitation delivery"}: ${job.status}`,
       },
       update: {},
     });

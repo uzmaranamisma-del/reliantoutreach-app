@@ -1,6 +1,9 @@
 import "dotenv/config";
 import { db } from "../src/lib/db";
-import { publishedPackages } from "../src/lib/package-catalog";
+import {
+  publishedPackages,
+  approvedTechnicalLimits,
+} from "../src/lib/package-catalog";
 import { permissions } from "../src/lib/permissions";
 async function main() {
   const actor = await db.user.findFirst({
@@ -24,7 +27,12 @@ async function main() {
               enabled: item.serviceType === "EMAIL",
             })),
           },
-          limits: { create: [{ key: "monthlyEmails", value: monthlyEmails }] },
+          limits: {
+            create: [
+              { key: "monthlyEmails", value: monthlyEmails },
+              ...(item.serviceType === "EMAIL" ? approvedTechnicalLimits : []),
+            ],
+          },
         },
       });
       await tx.auditLog.create({
@@ -35,12 +43,12 @@ async function main() {
           metadata: {
             source: item.sourceUrl,
             verifiedAt: "2026-09-14",
-            draft: true,
+            draft: !item.active,
           },
         },
       });
     });
-    console.log(`${item.name}: created as draft`);
+    console.log(`${item.name}: created (${item.active ? "active" : "draft"})`);
   }
 }
 main()

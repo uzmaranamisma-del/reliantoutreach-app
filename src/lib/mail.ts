@@ -1,4 +1,12 @@
 import nodemailer from "nodemailer";
+export function mailConfigured() {
+  return !!(
+    process.env.SMTP_HOST &&
+    process.env.SMTP_FROM_EMAIL &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASSWORD
+  );
+}
 export async function sendMail(to: string, subject: string, text: string) {
   if (!process.env.SMTP_HOST || !process.env.SMTP_FROM_EMAIL)
     throw new Error("SMTP is not configured");
@@ -12,14 +20,17 @@ export async function sendMail(to: string, subject: string, text: string) {
     connectionTimeout: 10000,
     socketTimeout: 15000,
   });
-  await transport.sendMail({
-    from: {
-      name: process.env.SMTP_FROM_NAME || "ReliantOutreach",
-      address: process.env.SMTP_FROM_EMAIL,
-    },
-    to,
-    subject,
-    text,
-  });
-  transport.close();
+  try {
+    await transport.sendMail({
+      from: {
+        name: process.env.SMTP_FROM_NAME || "ReliantOutreach",
+        address: process.env.SMTP_FROM_EMAIL,
+      },
+      to,
+      subject,
+      text,
+    });
+  } finally {
+    transport.close();
+  }
 }

@@ -1,7 +1,10 @@
 import { expect, it, vi } from "vitest";
 vi.mock("@/lib/db", () => ({ db: {} }));
 import { packageInput } from "@/server/admin";
-import { publishedPackages } from "@/lib/package-catalog";
+import {
+  publishedPackages,
+  approvedTechnicalLimits,
+} from "@/lib/package-catalog";
 const base = {
   name: "Launch",
   description: "Service",
@@ -33,7 +36,7 @@ it("rejects duplicate limits and invalid negative capacity", () => {
     }).success,
   ).toBe(false);
 });
-it("keeps website packages unassigned drafts with only published email capacities", () => {
+it("activates email plans with owner-approved technical limits and unchanged commercial capacities", () => {
   expect(publishedPackages.map((p) => [p.name, p.price, p.setupPrice])).toEqual(
     [
       ["Launch", 500, 1500],
@@ -42,10 +45,23 @@ it("keeps website packages unassigned drafts with only published email capacitie
       ["LinkedIn Outreach", 2500, 1500],
     ],
   );
-  expect(publishedPackages.every((p) => p.active === false)).toBe(true);
   expect(
     publishedPackages
       .filter((p) => p.serviceType === "EMAIL")
-      .every((p) => p.requiresLimitReview),
+      .map((p) => p.monthlyEmails),
+  ).toEqual([5000, 25000, 50000]);
+  expect(approvedTechnicalLimits).toHaveLength(6);
+  expect(
+    approvedTechnicalLimits.every(
+      (p) => p.value === -1 && p.key !== "monthlyEmails",
+    ),
+  ).toBe(true);
+  expect(
+    publishedPackages.find((p) => p.serviceType === "LINKEDIN")?.active,
+  ).toBe(false);
+  expect(
+    publishedPackages
+      .filter((p) => p.serviceType === "EMAIL")
+      .every((p) => p.active && !p.requiresLimitReview),
   ).toBe(true);
 });

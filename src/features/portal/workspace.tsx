@@ -22,7 +22,7 @@ export function Usage() {
       <PageTitle
         eyebrow="YOUR WORKSPACE"
         title="Package & usage"
-        description="Your plan, permissions, and current capacity."
+        description="Your plan, included services, and current capacity."
       />
       {q.error ? (
         <ErrorBox error={q.error} />
@@ -34,10 +34,35 @@ export function Usage() {
             <div>
               <span className="eyebrow">CURRENT PACKAGE</span>
               <h2>{q.data.package}</h2>
-              <p>{q.data.billingLabel}</p>
+              <p>
+                {q.data.plan.currency}{" "}
+                {Number(q.data.plan.price).toLocaleString()}{" "}
+                {q.data.billingLabel} · {q.data.plan.currency}{" "}
+                {Number(q.data.plan.setupPrice).toLocaleString()} setup
+              </p>
+              <p>{q.data.plan.description}</p>
             </div>
             <span className="status">Managed by your administrator</span>
           </div>
+          <div className="dashboard-grid section-space">
+            {[
+              ["Setup includes", q.data.plan.setupIncludes],
+              ["Monthly services", q.data.plan.monthlyIncludes],
+            ].map(([label, items]) => (
+              <section key={label} className="panel content-panel">
+                <h2>{label}</h2>
+                <ul>
+                  {(Array.isArray(items) ? items : []).map((text: string) => (
+                    <li key={text}>{text}</li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+          <p className="notice">
+            Minimum commitment: {q.data.plan.minimumMonths} months.{" "}
+            {q.data.plan.commercialTerms}
+          </p>
           <div className="usage-grid">
             {Object.entries(q.data.limits).map(([key, value]) => {
               const used = q.data.snapshot?.values?.[key];

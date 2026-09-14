@@ -109,6 +109,16 @@ export const GET = endpoint(async (request, context) => {
     return {
       package: ctx.client.package.name,
       billingLabel: ctx.client.package.billingLabel,
+      plan: {
+        description: ctx.client.package.description,
+        price: ctx.client.package.price.toString(),
+        setupPrice: ctx.client.package.setupPrice.toString(),
+        currency: ctx.client.package.currency,
+        minimumMonths: ctx.client.package.minimumMonths,
+        setupIncludes: ctx.client.package.setupIncludes,
+        monthlyIncludes: ctx.client.package.monthlyIncludes,
+        commercialTerms: ctx.client.package.commercialTerms,
+      },
       limits: Object.fromEntries(limitKeys.map((k) => [k, ctx.limit(k)])),
       snapshot: await db.usageSnapshot.findUnique({
         where: {

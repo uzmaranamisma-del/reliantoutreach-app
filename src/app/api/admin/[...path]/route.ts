@@ -14,10 +14,14 @@ import { permissions, limitKeys } from "@/lib/permissions";
 import { withLease } from "@/lib/locks";
 import { agencyRequest } from "@/lib/manyreach/client";
 import { getBranding, saveBranding } from "@/server/settings";
+import { queueOnboarding, onboardingStatus } from "@/server/onboarding";
+import { processJobs } from "@/server/jobs";
 export const GET = endpoint(async (request, context) => {
   await admin(request);
   const { path } = await context.params;
   const [section, id] = path;
+  if (section === "clients" && id && path[2] === "sync")
+    return onboardingStatus(id);
   if (section === "settings") return getBranding();
   const url = new URL(request.url);
   const page = z.coerce
@@ -256,6 +260,22 @@ export const POST = endpoint(async (request, context) => {
   const { path } = await context.params;
   const [section, id, action] = path;
   const data = await json(request);
+  if (section === "clients" && id && action === "sync")
+    return queueOnboarding(who.user.id, id, data);
+  if (section === "clients" && id && action === "sync-progress") {
+    const jobId = z.string().min(1).max(100).parse(data.jobId);
+    const state = await onboardingStatus(id, jobId);
+    if (!state.job) throw new AppError(404, "Sync job not found.");
+    if (["pending", "retry", "processing"].includes(state.job.status))
+      await processJobs(state.job.id);
+    else if (
+      state.job.syncCompleted &&
+      state.email &&
+      ["pending", "retry", "processing"].includes(state.email.status)
+    )
+      await processJobs(state.email.id);
+    return onboardingStatus(id, jobId);
+  }
   if (section === "settings") return saveBranding(who.user.id, data);
   if (section === "jobs" && id && action === "cancel")
     return cancelJob(who.user.id, id);

@@ -23,6 +23,7 @@ vi.mock("@/lib/db", () => ({
       deleteMany: vi.fn(),
     },
     appSetting: { upsert: vi.fn() },
+    client: { findUniqueOrThrow: vi.fn() },
     apiLog: { deleteMany: vi.fn() },
     auditLog: { deleteMany: vi.fn() },
     webhookEvent: { deleteMany: vi.fn() },
@@ -40,6 +41,9 @@ import { forClient, ProviderError } from "@/lib/manyreach/client";
 import { processJobs } from "../src/server/jobs";
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(db.client.findUniqueOrThrow).mockResolvedValue({
+    status: "ACTIVE",
+  } as any);
   vi.mocked(db.backgroundJob.updateMany).mockResolvedValue({ count: 1 });
   vi.mocked(db.backgroundJob.findMany).mockResolvedValue([
     {
@@ -86,6 +90,24 @@ it("marks expired processing leases for manual review instead of replaying", asy
     expect.objectContaining({
       where: expect.objectContaining({ status: "processing" }),
       data: expect.objectContaining({ status: "failed", payload: null }),
+    }),
+  );
+});
+it("targets only the requested job without reporting a scheduled cron run", async () => {
+  vi.mocked(db.backgroundJob.findMany).mockResolvedValue([]);
+  await processJobs("chosen-job");
+  expect(db.backgroundJob.findMany).toHaveBeenCalledWith(
+    expect.objectContaining({
+      where: expect.objectContaining({ id: "chosen-job" }),
+    }),
+  );
+  expect(db.appSetting.upsert).not.toHaveBeenCalled();
+  expect(db.backgroundJob.updateMany).toHaveBeenCalledWith(
+    expect.objectContaining({
+      where: expect.objectContaining({
+        id: "chosen-job",
+        status: "processing",
+      }),
     }),
   );
 });

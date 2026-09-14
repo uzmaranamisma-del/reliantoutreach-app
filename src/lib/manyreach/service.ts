@@ -36,7 +36,11 @@ export async function list(
     provider = await forClient(ctx.client.id);
   let params: Record<string, unknown> = { page: q.page, limit: q.limit };
   if (kind === "campaigns") {
-    params = { "pageQuery.page": q.page, "pageQuery.limit": q.limit };
+    params = {
+      "pageQuery.page": q.page,
+      "pageQuery.limit": q.limit,
+      "pageQuery.includeArchived": true,
+    };
     if (q.status)
       params["pageQuery.status"] = z
         .enum([

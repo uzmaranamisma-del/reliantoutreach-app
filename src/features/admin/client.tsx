@@ -15,6 +15,7 @@ import { limitKeys, permissions } from "@/lib/permissions";
 import { ArrowLeft, Eye, Mail } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { ClientSync } from "./sync";
 
 export function ClientDetail({ id }: { id: string }) {
   const q = useLive(`/api/admin/clients/${id}`),
@@ -74,41 +75,32 @@ export function ClientDetail({ id }: { id: string }) {
           <Eye size={15} />
           Login as client
         </Button>
-        <Button
-          variant="outline"
-          onClick={() =>
-            setDialog(c.status === "ACTIVE" ? "suspend" : "reactivate")
-          }
-        >
-          {c.status === "ACTIVE"
-            ? "Suspend"
-            : c.status === "DRAFT"
-              ? "Activate workspace"
-              : "Reactivate"}
-        </Button>
+        {c.status !== "DRAFT" && (
+          <Button
+            variant="outline"
+            onClick={() =>
+              setDialog(c.status === "ACTIVE" ? "suspend" : "reactivate")
+            }
+          >
+            {c.status === "ACTIVE" ? "Suspend" : "Reactivate"}
+          </Button>
+        )}
       </PageTitle>
       {error && <ErrorBox error={error} />}
       {c.status === "DRAFT" && (
         <div className="notice">
           <strong>Inactive client draft</strong>
           <p>
-            Next: review and activate the package limits, add a verified
-            clientspace connection, then activate this workspace and send the
-            owner invitation.
+            Enter this client&apos;s Manyreach API key below and click Sync
+            &amp; Invite. After all data checks succeed, the workspace activates
+            and the owner invitation is queued automatically.
           </p>
-          <Link
-            href="/admin/packages"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Review package limits
-          </Link>
         </div>
       )}
-      <div className="dashboard-grid">
+      <div className="client-setup-grid">
         <div className="panel content-panel">
           <div className="section-title">
-            <h2>Package & permissions</h2>
+            <h2>Assigned package</h2>
             <Button
               variant="outline"
               size="sm"
@@ -121,40 +113,27 @@ export function ClientDetail({ id }: { id: string }) {
             </Button>
           </div>
           <h3>{c.package.name}</h3>
+          <p>
+            {c.package.currency} {Number(c.package.price).toLocaleString()}{" "}
+            {c.package.billingLabel}
+          </p>
+          <p>
+            {c.package.currency} {Number(c.package.setupPrice).toLocaleString()}{" "}
+            setup
+          </p>
+          <p>
+            Monthly email capacity:{" "}
+            {Number(
+              c.package.limits.find(
+                (limit: any) => limit.key === "monthlyEmails",
+              )?.value || 0,
+            ).toLocaleString()}
+          </p>
           <p className="muted">
             Package updates apply to the next protected request.
           </p>
-          <Button variant="outline" onClick={() => setDialog("overrides")}>
-            Edit client overrides
-          </Button>
         </div>
-        <div className="panel content-panel">
-          <h2>Connection</h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setDialog("connection")}
-          >
-            {c.mapping ? "Update connection key" : "Add connection"}
-          </Button>
-          <dl className="detail-grid">
-            <div>
-              <dt>Manyreach clientspace</dt>
-              <dd>{c.mapping?.providerId || "Not mapped"}</dd>
-            </div>
-            <div>
-              <dt>Last sync</dt>
-              <dd>
-                {c.mapping?.lastSyncAt
-                  ? new Date(c.mapping.lastSyncAt).toLocaleString()
-                  : "Not synced yet"}
-              </dd>
-            </div>
-          </dl>
-          <p className="muted">
-            {c.country} · {c.timezone}
-          </p>
-        </div>
+        <ClientSync clientId={id} connected={!!c.mapping} />
       </div>
       <div className="section-title section-space">
         <h2>Members</h2>
@@ -171,7 +150,7 @@ export function ClientDetail({ id }: { id: string }) {
           disabled={busy || c.status !== "ACTIVE"}
         >
           <Mail size={15} />
-          Send owner invitation
+          Resend owner invitation
         </Button>
       </div>
       <DataTable

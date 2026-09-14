@@ -46,6 +46,10 @@ export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
     ["Connected senders", values?.senders, Mail],
     ["Prospects", values?.prospects, Users],
     ["Prospect lists", values?.lists, Layers],
+    ["Emails sent", values?.sentCount, Send],
+    ["Campaign replies", values?.replyCount, MessageSquare],
+    ["Email opens", values?.openCount, Mail],
+    ["Bounces", values?.bounceCount, Mail],
   ] as const;
   return (
     <>
@@ -96,7 +100,7 @@ export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
             <small>
               {value === undefined
                 ? "Awaiting first usage sync"
-                : "Latest workspace snapshot"}
+                : "Latest sync · all-time totals"}
             </small>
           </div>
         ))}

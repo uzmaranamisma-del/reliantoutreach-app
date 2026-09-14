@@ -254,6 +254,7 @@ model BackgroundJob {
   actorId String?
   dedupeKey String? @unique
   payload String? @db.LongText
+  result Json?
   status JobStatus @default(pending)
   progress Int @default(0)
   total Int @default(0)

@@ -10,12 +10,14 @@ import {
 import { AppError } from "@/lib/errors";
 import { withLease } from "@/lib/locks";
 import { syncJobNotifications } from "./notifications";
+import { onboardingStage } from "./onboarding";
+import { syncDataStage, syncValues } from "./sync-data";
 import {
   getEffectivePermission,
   getEffectiveLimit,
   withinLimit,
 } from "@/lib/permissions";
-export async function processJobs() {
+export async function processJobs(jobId?: string) {
   return withLease(
     "cron:processor",
     async () => {
@@ -24,6 +26,7 @@ export async function processJobs() {
       // Never blindly replay jobs whose worker died during a non-idempotent external write.
       await db.backgroundJob.updateMany({
         where: {
+          ...(jobId ? { id: jobId } : {}),
           status: "processing",
           lockedAt: { lt: new Date(Date.now() - 300000) },
         },
@@ -36,6 +39,7 @@ export async function processJobs() {
       });
       const jobs = await db.backgroundJob.findMany({
         where: {
+          ...(jobId ? { id: jobId } : {}),
           status: { in: ["pending", "retry"] },
           runAfter: { lte: new Date() },
         },
@@ -59,26 +63,45 @@ export async function processJobs() {
           const payload = job.payload ? JSON.parse(decrypt(job.payload)) : {};
           let done = true,
             progress = job.progress;
-          if (job.type === "invitation-email") {
-            const invitation = await db.invitation.findUnique({
-              where: { id: payload.invitationId },
-            });
-            if (
-              invitation &&
-              !invitation.revokedAt &&
-              !invitation.acceptedAt &&
-              invitation.expiresAt > new Date()
-            ) {
-              await sendMail(
-                invitation.email,
-                "You've been invited to ReliantOutreach",
-                `Hello ${invitation.name},\n\nYour outreach workspace is ready.\n\nAccept your invitation:\n${process.env.NEXT_PUBLIC_APP_URL}/invite/${payload.token}\n\nThis link expires in ${process.env.INVITATION_EXPIRY_HOURS || 48} hours.\n\nReliantOutreach`,
-              );
-              await db.invitation.update({
-                where: { id: invitation.id },
-                data: { sentAt: new Date() },
-              });
-            }
+          if (job.type === "client-onboarding") {
+            const stage = await onboardingStage(job, payload);
+            done = stage.done;
+            progress = stage.progress;
+          } else if (job.type === "invitation-email") {
+            await withLease(
+              `tenant:${job.clientId}`,
+              async () => {
+                const client = await db.client.findUniqueOrThrow({
+                  where: { id: job.clientId! },
+                });
+                if (client.status !== "ACTIVE")
+                  throw new AppError(
+                    403,
+                    "Workspace is inactive. Review access before resending the invitation.",
+                  );
+                const invitation = await db.invitation.findUnique({
+                  where: { id: payload.invitationId },
+                });
+                if (
+                  invitation &&
+                  !invitation.sentAt &&
+                  !invitation.revokedAt &&
+                  !invitation.acceptedAt &&
+                  invitation.expiresAt > new Date()
+                ) {
+                  await sendMail(
+                    invitation.email,
+                    "You've been invited to ReliantOutreach",
+                    `Hello ${invitation.name},\n\nYour outreach workspace is ready.\n\nAccept your invitation:\n${process.env.NEXT_PUBLIC_APP_URL}/invite/${payload.token}\n\nThis link expires in ${process.env.INVITATION_EXPIRY_HOURS || 48} hours.\n\nReliantOutreach`,
+                  );
+                  await db.invitation.update({
+                    where: { id: invitation.id },
+                    data: { sentAt: new Date() },
+                  });
+                }
+              },
+              60,
+            );
           } else if (job.type === "prospect-import") {
             await withLease(
               `tenant:${job.clientId}`,
@@ -232,37 +255,39 @@ export async function processJobs() {
               180,
             );
           } else if (job.type === "reconcile") {
-            const p = await forClient(job.clientId!);
-            const counts: Record<string, number> = {};
-            for (const kind of ["campaigns", "senders", "prospects", "lists"]) {
-              const result = await p.request<ProviderPage>(
-                `/${kind}`,
-                "GET",
-                undefined,
-                kind === "campaigns"
-                  ? { "pageQuery.limit": 1, "pageQuery.includeArchived": true }
-                  : { limit: 1 },
+            const client = await db.client.findUniqueOrThrow({
+              where: { id: job.clientId! },
+            });
+            if (client.status !== "ACTIVE")
+              throw new AppError(403, "Workspace is inactive.");
+            done = await syncDataStage(job.clientId!, payload);
+            progress = payload.stage;
+            if (done) {
+              const counts = syncValues(
+                payload,
+                await db.clientMembership.count({
+                  where: { clientId: job.clientId! },
+                }),
               );
-              counts[kind] = result.pagination.totalItems;
+              await db.usageSnapshot.upsert({
+                where: {
+                  clientId_period: {
+                    clientId: job.clientId!,
+                    period: "current",
+                  },
+                },
+                create: {
+                  clientId: job.clientId!,
+                  period: "current",
+                  values: counts,
+                },
+                update: { values: counts, capturedAt: new Date() },
+              });
+              await db.manyreachClientspace.update({
+                where: { clientId: job.clientId! },
+                data: { lastSyncAt: new Date(), lastError: null },
+              });
             }
-            counts.teamMembers = await db.clientMembership.count({
-              where: { clientId: job.clientId! },
-            });
-            await db.usageSnapshot.upsert({
-              where: {
-                clientId_period: { clientId: job.clientId!, period: "current" },
-              },
-              create: {
-                clientId: job.clientId!,
-                period: "current",
-                values: counts,
-              },
-              update: { values: counts, capturedAt: new Date() },
-            });
-            await db.manyreachClientspace.update({
-              where: { clientId: job.clientId! },
-              data: { lastSyncAt: new Date(), lastError: null },
-            });
           } else throw new AppError(422, "Unknown job type.");
           await db.backgroundJob.updateMany({
             where: { id: job.id, lockToken },
@@ -303,13 +328,15 @@ export async function processJobs() {
           });
         }
       }
-      await db.appSetting.upsert({
-        where: { key: "cron.lastRun" },
-        create: { key: "cron.lastRun", value: new Date().toISOString() },
-        update: { value: new Date().toISOString() },
-      });
-      await cleanup();
-      await syncJobNotifications();
+      if (!jobId) {
+        await db.appSetting.upsert({
+          where: { key: "cron.lastRun" },
+          create: { key: "cron.lastRun", value: new Date().toISOString() },
+          update: { value: new Date().toISOString() },
+        });
+        await cleanup();
+        await syncJobNotifications();
+      }
       return { processed };
     },
     240,
@@ -335,6 +362,7 @@ export async function scheduleReconciliation() {
       where: { dedupeKey: `sync:${c.id}:${slot}` },
       create: {
         type: "reconcile",
+        total: 5,
         clientId: c.id,
         dedupeKey: `sync:${c.id}:${slot}`,
       },
