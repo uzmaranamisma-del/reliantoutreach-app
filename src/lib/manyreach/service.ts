@@ -8,6 +8,7 @@ import { tenant, type Tenant } from "@/lib/access";
 import { withLease } from "@/lib/locks";
 import { withinLimit, type Permission, type LimitKey } from "@/lib/permissions";
 import { once } from "@/lib/mutations";
+import { validateSchedule } from "./schedule";
 export type Resource = "campaigns" | "prospects" | "lists" | "senders";
 export function permissionFor(
   kind: Resource,
@@ -185,6 +186,7 @@ export async function mutate(
           );
       }
     }
+    if (kind === "campaigns" && verb === "create") validateSchedule(clean);
     if (verb === "edit") {
       const current = await p.request(`/${kind}/${external}`);
       if (!input.version || version(current) !== input.version)
@@ -196,19 +198,7 @@ export async function mutate(
         kind === "campaigns" &&
         (clean.scheduleSending ?? current.scheduleSending)
       ) {
-        const schedule = { ...current, ...clean };
-        const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-        if (!days.some((day) => schedule[`send${day}`]))
-          throw new AppError(422, "Enable at least one sending day.");
-        for (const day of days)
-          if (
-            schedule[`send${day}`] &&
-            schedule[`send${day}After`] >= schedule[`send${day}Before`]
-          )
-            throw new AppError(
-              422,
-              "A scheduled day must end after it starts.",
-            );
+        validateSchedule({ ...current, ...clean });
       }
       if (kind === "senders") {
         for (const [key, value] of Object.entries(current)) {

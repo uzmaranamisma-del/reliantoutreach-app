@@ -5,6 +5,8 @@ import { api } from "@/lib/browser-api";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, Mail, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { ResourcePicker } from "@/components/resource-picker";
+import { SendingSchedule } from "@/components/sending-schedule";
 const steps = [
   "Details",
   "Senders",
@@ -18,6 +20,15 @@ const html = (text: string) =>
   `<p>${text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\n", "<br>")}</p>`;
 export function CampaignBuilder({ onDone }: { onDone: (id: string) => void }) {
   const [requestKey] = useState(() => crypto.randomUUID());
+  const [sourceList, setSourceList] = useState(""),
+    [csv, setCsv] = useState(""),
+    [mapping, setMapping] = useState({
+      email: "email",
+      firstName: "firstName",
+      lastName: "lastName",
+      company: "company",
+    });
+  const [enrollmentKey] = useState(() => crypto.randomUUID());
   const [step, setStep] = useState(0),
     [data, setData] = useState({
       name: "",
@@ -29,6 +40,7 @@ export function CampaignBuilder({ onDone }: { onDone: (id: string) => void }) {
       fromEmails: [] as string[],
       trackOpens: false,
       trackClicks: false,
+      scheduleSending: false,
     }),
     [followups, setFollowups] = useState<
       { subject: string; body: string; days: number }[]
@@ -81,6 +93,19 @@ export function CampaignBuilder({ onDone }: { onDone: (id: string) => void }) {
           });
         }
       }
+      if (sourceList)
+        await api("/api/portal/enrollments", {
+          sourceList,
+          campaign: id,
+          key: enrollmentKey,
+        });
+      else if (csv.trim())
+        await api("/api/portal/imports", {
+          csv,
+          mapping,
+          campaign: id,
+          key: enrollmentKey,
+        });
       onDone(id);
     } catch (e) {
       setError(
@@ -272,14 +297,59 @@ export function CampaignBuilder({ onDone }: { onDone: (id: string) => void }) {
           </>
         )}
         {step === 4 && (
-          <div className="notice">
-            <h3>Add prospects after saving your draft</h3>
-            <p>
-              Open the Prospects tab in the saved campaign to map and upload
-              your CSV. You can track each import before confirming the campaign
-              start.
+          <div>
+            <ResourcePicker
+              kind="lists"
+              label="Use an existing list (optional)"
+              value={sourceList}
+              onChange={(v) => {
+                setSourceList(v);
+                setCsv("");
+              }}
+            />
+            {!sourceList && (
+              <>
+                <label className="upload-zone">
+                  Choose a CSV file
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      if (f.size > 2500000) {
+                        setError("Choose a CSV smaller than 2.5 MB.");
+                        return;
+                      }
+                      setCsv(await f.text());
+                    }}
+                  />
+                </label>
+                {csv && (
+                  <>
+                    <p className="notice">
+                      Map each field to its exact CSV column header. Leave
+                      optional mappings blank when absent.
+                    </p>
+                    <div className="form-grid">
+                      {Object.entries(mapping).map(([k, v]) => (
+                        <Field
+                          key={k}
+                          name={k}
+                          label={`${k} column`}
+                          value={v}
+                          onChange={(v) => setMapping({ ...mapping, [k]: v })}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+            <p className="muted">
+              Enrollment is queued when the draft is saved. The campaign remains
+              a draft until you start it.
             </p>
-            <p>The campaign remains a draft until you explicitly start it.</p>
           </div>
         )}
         {step === 5 && (
@@ -324,6 +394,10 @@ export function CampaignBuilder({ onDone }: { onDone: (id: string) => void }) {
             <p className="muted">
               The daily limit applies across the entire campaign.
             </p>
+            <SendingSchedule
+              value={data}
+              onChange={(patch) => setData({ ...data, ...patch })}
+            />
           </>
         )}
         {step === 6 && (
@@ -344,7 +418,13 @@ export function CampaignBuilder({ onDone }: { onDone: (id: string) => void }) {
               </div>
               <div>
                 <dt>Prospects</dt>
-                <dd>Add after saving</dd>
+                <dd>
+                  {sourceList
+                    ? "Existing list"
+                    : csv
+                      ? "CSV import"
+                      : "Add later"}
+                </dd>
               </div>
             </dl>
             <h3>{data.subject}</h3>

@@ -80,12 +80,14 @@ export function Usage() {
 }
 
 export function Team() {
+  const { data: ctx } = useContext();
   const q = useLive("/api/portal/team"),
     [invite, setInvite] = useState(false),
     [form, setForm] = useState({ name: "", email: "", role: "CLIENT_MEMBER" }),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [remove, setRemove] = useState<any>();
+    [remove, setRemove] = useState<any>(),
+    [edit, setEdit] = useState<any>();
   return (
     <>
       <PageTitle
@@ -115,10 +117,16 @@ export function Team() {
           },
         ]}
         actions={(r) =>
+          ctx?.role === "CLIENT_OWNER" &&
           r.role !== "CLIENT_OWNER" && (
-            <Button variant="ghost" size="sm" onClick={() => setRemove(r)}>
-              Remove
-            </Button>
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setEdit(r)}>
+                Edit role
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setRemove(r)}>
+                Remove
+              </Button>
+            </>
           )
         }
       />
@@ -127,6 +135,22 @@ export function Team() {
       </div>
       <DataTable
         rows={q.data?.invitations || []}
+        actions={(r) => (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={async () => {
+              try {
+                await api(`/api/portal/team/${r.id}/revoke`, {});
+                q.refetch();
+              } catch (e) {
+                setError((e as Error).message);
+              }
+            }}
+          >
+            Revoke
+          </Button>
+        )}
         columns={[
           { key: "email", label: "Email" },
           { key: "role", label: "Role" },
@@ -137,6 +161,43 @@ export function Team() {
           },
         ]}
       />
+      <Modal
+        open={!!edit}
+        onOpenChange={(v) => !v && setEdit(undefined)}
+        title="Change team role"
+      >
+        <p>{edit?.user.email}</p>
+        <Field
+          name="role"
+          label="Role"
+          value={edit?.role}
+          onChange={(role) => setEdit({ ...edit, role })}
+          options={[
+            { value: "CLIENT_ADMIN", label: "Administrator" },
+            { value: "CLIENT_MEMBER", label: "Member (read access)" },
+          ]}
+        />
+        <div className="form-actions">
+          <Button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await api(`/api/portal/team/${edit.id}`, { role: edit.role });
+                setEdit(undefined);
+                q.refetch();
+              } catch (e) {
+                setError((e as Error).message);
+                setEdit(undefined);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Save role
+          </Button>
+        </div>
+      </Modal>
       <Modal open={invite} onOpenChange={setInvite} title="Invite a teammate">
         <form
           onSubmit={async (e) => {

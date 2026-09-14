@@ -26,6 +26,7 @@ import { resolve } from "@/lib/manyreach/public";
 import { encrypt } from "@/lib/crypto";
 import { createInvitation } from "@/server/invitations";
 import { withLease } from "@/lib/locks";
+import { queueEnrollment } from "@/server/enrollment";
 const resources = ["campaigns", "prospects", "lists", "senders"];
 export const GET = endpoint(async (request, context) => {
   const { path } = await context.params;
@@ -46,7 +47,7 @@ export const GET = endpoint(async (request, context) => {
   }
   if (section === "inbox") {
     const ctx = await tenant(request, "inbox.view");
-    if (id === "thread") return thread(ctx, q.email);
+    if (id === "thread") return thread(ctx, q.email, q.cursor);
     return list(ctx, "messages", q);
   }
   if (section === "context") {
@@ -69,6 +70,25 @@ export const GET = endpoint(async (request, context) => {
     };
   }
   const ctx = await tenant(request);
+  if (section === "notifications") {
+    const page = z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100000)
+      .parse(q.page || 1);
+    const where = { clientId: ctx.client.id };
+    const [items, total] = await Promise.all([
+      db.notification.findMany({
+        where,
+        take: 25,
+        skip: (page - 1) * 25,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      }),
+      db.notification.count({ where }),
+    ]);
+    return { items, total };
+  }
   if (section === "overview") {
     const snapshot = await db.usageSnapshot.findUnique({
       where: {
@@ -145,6 +165,16 @@ export const POST = endpoint(async (request, context) => {
   const { path } = await context.params;
   const [section, id, action] = path;
   const input = await json(request, section === "imports" ? 3_000_000 : 128000);
+  if (section === "enrollments") return queueEnrollment(request, input);
+  if (section === "notifications" && id) {
+    const ctx = await tenant(request);
+    const changed = await db.notification.updateMany({
+      where: { id, clientId: ctx.client.id },
+      data: { readAt: new Date() },
+    });
+    if (!changed.count) throw new AppError(404, "Notification not found.");
+    return { ok: true };
+  }
   if (resources.includes(section)) {
     if (section === "campaigns" && id && action === "sequences")
       return sequenceWrite(request, id, input.action, input);

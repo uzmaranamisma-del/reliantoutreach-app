@@ -1,0 +1,120 @@
+// Published commercial facts verified at https://reliantoutreach.com/#pricing on 2026-09-14.
+// Unpublished technical limits deliberately remain unset until the owner reviews them.
+const terms =
+  "Minimum 3-month management commitment. Setup is paid upfront. Core infrastructure is included within plan limits. Additional domains, inboxes, data, integrations, LinkedIn outreach, CRM subscriptions and appointment setting may require a custom quote. Meetings and revenue are not guaranteed.";
+export const publishedPackages = [
+  {
+    name: "Launch",
+    description:
+      "Outbound infrastructure and monthly management for a focused launch.",
+    setupPrice: 1500,
+    price: 500,
+    monthlyEmails: 5000,
+    setupIncludes: [
+      "Outbound strategy and ICP definition",
+      "Sending domains and dedicated email inboxes",
+      "SPF, DKIM and DMARC configuration",
+      "Inbox warm-up and sending platform setup",
+      "Initial verified prospect database",
+      "Email copy, follow-up sequences and campaign deployment",
+    ],
+    monthlyIncludes: [
+      "Core infrastructure subscriptions within plan limits",
+      "Fresh verified prospects and email verification",
+      "Campaign management and deliverability monitoring",
+      "Basic campaign optimization",
+      "Monthly performance report",
+    ],
+  },
+  {
+    name: "Growth",
+    description:
+      "Expanded outbound infrastructure for two ICPs or market segments.",
+    setupPrice: 2500,
+    price: 1000,
+    monthlyEmails: 25000,
+    setupIncludes: [
+      "Everything in Launch",
+      "Expanded domains and inbox infrastructure",
+      "Two ICPs or market segments",
+      "Multiple campaigns and up to four tested sequences",
+      "AI-assisted personalization setup",
+      "Advanced deliverability configuration",
+      "Reply classification workflow and reporting dashboard",
+    ],
+    monthlyIncludes: [
+      "Core infrastructure subscriptions within plan limits",
+      "Fresh verified prospects and email verification",
+      "Campaign deployment and management",
+      "Weekly campaign optimization",
+      "Deliverability and inbox monitoring",
+      "Reply classification",
+      "Monthly performance review and priority support",
+    ],
+  },
+  {
+    name: "Scale",
+    description:
+      "High-volume infrastructure and dedicated campaign management across markets.",
+    setupPrice: 4000,
+    price: 1500,
+    monthlyEmails: 50000,
+    setupIncludes: [
+      "Everything in Growth",
+      "Enterprise sending infrastructure and expanded inbox pools",
+      "Multiple ICPs, campaigns and market segments",
+      "Advanced AI-assisted personalization",
+      "Custom sending architecture",
+      "Domain and inbox rotation system",
+      "Advanced reporting and dedicated campaign management",
+    ],
+    monthlyIncludes: [
+      "Core infrastructure subscriptions within plan limits",
+      "Fresh verified prospects and email verification",
+      "High-volume campaign management",
+      "Continuous deliverability monitoring",
+      "Weekly campaign optimization",
+      "Domain and inbox rotation",
+      "Weekly performance review and dedicated support",
+    ],
+  },
+  {
+    name: "LinkedIn Outreach",
+    description:
+      "Managed LinkedIn prospecting and personalized messaging service.",
+    setupPrice: 1500,
+    price: 2500,
+    monthlyEmails: 0,
+    serviceType: "LINKEDIN",
+    initialMessages: 300,
+    monthlyMessages: 1500,
+    setupIncludes: [
+      "300 hyper-personalized LinkedIn messages",
+      "LinkedIn strategy, ICP and persona targeting",
+      "Sales Navigator searches and profile positioning audit",
+      "Prospect list creation",
+      "Connection copy and follow-up sequences",
+      "Reply handling, tracking and reporting setup",
+    ],
+    monthlyIncludes: [
+      "1,500 hyper-personalized LinkedIn messages per month",
+      "Fresh LinkedIn prospect sourcing",
+      "Connection requests and follow-up message management",
+      "Daily inbox monitoring and lead qualification",
+      "CRM or sheet handoff workflow",
+      "Weekly messaging optimization",
+      "Monthly performance report and LinkedIn support",
+    ],
+  },
+].map((p, i) => ({
+  ...p,
+  serviceType: p.serviceType || "EMAIL",
+  currency: "USD",
+  billingLabel: "per month",
+  minimumMonths: 3,
+  commercialTerms: terms,
+  sourceUrl: "https://reliantoutreach.com/#pricing",
+  displayOrder: i,
+  active: false,
+  requiresLimitReview: p.serviceType !== "LINKEDIN",
+}));

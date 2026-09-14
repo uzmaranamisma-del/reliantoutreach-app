@@ -111,7 +111,7 @@ export function Clients() {
 }
 
 export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
-  const packages = useLive("/api/admin/packages"),
+  const packages = useLive("/api/admin/packages/options"),
     [step, setStep] = useState(0),
     [form, setForm] = useState<any>({
       company: "",

@@ -128,6 +128,29 @@ export async function sequenceWrite(
     }
     const sequence = resolve(ctx.client.id, "sequences", input.sequenceId);
     if (sequence.p !== campaign) throw new AppError(404, "Sequence not found.");
+    if (action === "edit-sequence" || action === "delete-sequence") {
+      const records = await p.request<ProviderPage>(
+        `/campaigns/${campaign}/sequences`,
+      );
+      const current = records.items.find(
+        (s) => String(s.sequenceId) === sequence.i,
+      );
+      if (!current) throw new AppError(404, "Sequence not found.");
+      if (version(current) !== input.version)
+        throw new AppError(409, "The sequence changed. Refresh before saving.");
+      if (action === "delete-sequence") {
+        if (input.confirm !== true)
+          throw new AppError(422, "Confirm deletion.");
+        await p.request(`/sequences/${sequence.i}`, "DELETE");
+      } else
+        await p.request(
+          `/sequences/${sequence.i}`,
+          "PATCH",
+          providerSchema("SequenceUpdate").parse(input.data),
+        );
+      await audit(ctx, action, campaignId);
+      return { ok: true };
+    }
     if (action === "add") {
       const data = providerSchema("FollowupCreate").parse(input.data) as any;
       if (data.body) data.body = safeHtml(data.body);
@@ -185,8 +208,9 @@ export async function reply(request: Request, input: unknown) {
     });
   });
 }
-export async function thread(ctx: Tenant, email: string) {
+export async function thread(ctx: Tenant, email: string, cursor?: string) {
   z.email().parse(email);
+  if (cursor) z.string().max(200).parse(cursor);
   const p = await forClient(ctx.client.id);
   const prospects = await p.request<ProviderPage>(
     "/prospects",
@@ -202,7 +226,7 @@ export async function thread(ctx: Tenant, email: string) {
     `/prospects/${prospect.prospectId}/messages`,
     "GET",
     undefined,
-    { limit: 100 },
+    { limit: 100, startingAfter: cursor },
   );
   return {
     items: messages.items.map((m) =>

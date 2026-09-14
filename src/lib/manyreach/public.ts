@@ -130,7 +130,7 @@ const fields: Record<string, string[]> = {
     "createdAt",
     "delayMinMinutes",
   ],
-  sequences: ["name", "shortName", "conditionReply"],
+  sequences: ["name", "shortName", "conditionReply","conditionExtra","conditionNegate","conditionTimes","conditionAction","conditionOperator"],
   followups: [
     "subject",
     "body",

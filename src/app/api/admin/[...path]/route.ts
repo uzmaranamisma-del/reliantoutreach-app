@@ -2,15 +2,22 @@ import { z } from "zod";
 import { admin } from "@/lib/access";
 import { db } from "@/lib/db";
 import { endpoint, json, sameOrigin, AppError } from "@/lib/errors";
-import { savePackage, createClient } from "@/server/admin";
+import { savePackage, createClient, clientInput } from "@/server/admin";
+import {
+  rotateConnection,
+  changeMember,
+  cancelJob,
+} from "@/server/admin-actions";
 import { createInvitation } from "@/server/invitations";
 import { permissions, limitKeys } from "@/lib/permissions";
 import { withLease } from "@/lib/locks";
 import { agencyRequest } from "@/lib/manyreach/client";
+import { getBranding, saveBranding } from "@/server/settings";
 export const GET = endpoint(async (request, context) => {
   await admin(request);
   const { path } = await context.params;
   const [section, id] = path;
+  if (section === "settings") return getBranding();
   const url = new URL(request.url);
   const page = z.coerce
     .number()
@@ -20,18 +27,43 @@ export const GET = endpoint(async (request, context) => {
     .parse(url.searchParams.get("page") || 1);
   const search = (url.searchParams.get("search") || "").slice(0, 100);
   const skip = (page - 1) * 25;
-  if (section === "packages")
+  if (section === "packages" && id === "options")
     return {
       items: await db.package.findMany({
+        where: {
+          active: true,
+          serviceType: "EMAIL",
+          requiresLimitReview: false,
+        },
+        select: { id: true, name: true },
+        orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+      }),
+    };
+  if (section === "packages") {
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search } },
+            { description: { contains: search } },
+          ],
+        }
+      : {};
+    const [items, total] = await Promise.all([
+      db.package.findMany({
+        where,
+        skip,
         include: {
           features: true,
           limits: true,
           _count: { select: { clients: true } },
         },
-        orderBy: { displayOrder: "asc" },
-        take: 100,
+        orderBy: [{ displayOrder: "asc" }, { id: "asc" }],
+        take: 25,
       }),
-    };
+      db.package.count({ where }),
+    ]);
+    return { items, total, page };
+  }
   if (section === "clientspaces") {
     const spaces = await agencyRequest("/clientspaces", "GET", undefined, {
       page,
@@ -216,6 +248,9 @@ export const POST = endpoint(async (request, context) => {
   const { path } = await context.params;
   const [section, id, action] = path;
   const data = await json(request);
+  if (section === "settings") return saveBranding(who.user.id, data);
+  if (section === "jobs" && id && action === "cancel")
+    return cancelJob(who.user.id, id);
   if (section === "packages") return savePackage(who.user.id, data, id);
   if (section === "clients" && !id) return createClient(who.user.id, data);
   if (section === "impersonation" && id === "stop") {
@@ -258,7 +293,17 @@ export const POST = endpoint(async (request, context) => {
         });
       } else if (action === "package") {
         const packageId = z.string().min(1).parse(data.packageId);
-        await db.package.findUniqueOrThrow({ where: { id: packageId } });
+        if (
+          !(await db.package.findFirst({
+            where: {
+              id: packageId,
+              active: true,
+              serviceType: "EMAIL",
+              requiresLimitReview: false,
+            },
+          }))
+        )
+          throw new AppError(422, "Choose an active, reviewed email package.");
         await db.client.update({ where: { id }, data: { packageId } });
       } else if (action === "overrides") {
         const input = z
@@ -282,17 +327,19 @@ export const POST = endpoint(async (request, context) => {
           },
         });
       } else if (action === "edit") {
-        const input = z
-          .object({
-            company: z.string().min(1).max(150),
-            firstName: z.string().min(1).max(100),
-            lastName: z.string().max(100),
-            email: z.email(),
-            country: z.string().min(2).max(100),
-            timezone: z.string().max(64),
+        const input = clientInput
+          .omit({
+            packageId: true,
+            connection: true,
+            clientspaceId: true,
+            sendNow: true,
           })
           .parse(data);
         await db.client.update({ where: { id }, data: input });
+      } else if (action === "connection") {
+        return rotateConnection(who.user.id, id, data);
+      } else if (action === "members") {
+        return changeMember(who.user.id, id, data);
       } else throw new AppError(404, "Action not found.");
       await db.auditLog.create({
         data: {

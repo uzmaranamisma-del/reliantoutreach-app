@@ -18,11 +18,12 @@ import { useState } from "react";
 
 export function ClientDetail({ id }: { id: string }) {
   const q = useLive(`/api/admin/clients/${id}`),
-    packages = useLive("/api/admin/packages"),
+    packages = useLive("/api/admin/packages/options"),
     [dialog, setDialog] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [packageId, setPackageId] = useState("");
+    [packageId, setPackageId] = useState(""),
+    [member, setMember] = useState<any>();
   const c = q.data;
   async function action(name: string, data: any) {
     setBusy(true);
@@ -56,6 +57,9 @@ export function ClientDetail({ id }: { id: string }) {
         description={`${c.firstName} ${c.lastName} · ${c.email}`}
       >
         <Status value={c.status} />
+        <Button variant="outline" onClick={() => setDialog("edit")}>
+          Edit client
+        </Button>
         <Button variant="outline" onClick={() => action("impersonate", {})}>
           <Eye size={15} />
           Login as client
@@ -95,6 +99,13 @@ export function ClientDetail({ id }: { id: string }) {
         </div>
         <div className="panel content-panel">
           <h2>Connection</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDialog("connection")}
+          >
+            Update connection key
+          </Button>
           <dl className="detail-grid">
             <div>
               <dt>Manyreach clientspace</dt>
@@ -134,10 +145,27 @@ export function ClientDetail({ id }: { id: string }) {
       </div>
       <DataTable
         rows={c.memberships}
+        actions={(r) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setMember(r);
+              setDialog("members");
+            }}
+          >
+            Edit access
+          </Button>
+        )}
         columns={[
           { key: "name", label: "Name", render: (r: any) => r.user.name },
           { key: "email", label: "Email", render: (r: any) => r.user.email },
           { key: "role", label: "Role" },
+          {
+            key: "disabled",
+            label: "Access",
+            render: (r: any) => (r.disabled ? "Disabled" : "Active"),
+          },
         ]}
       />
       <div className="section-title section-space">
@@ -173,15 +201,88 @@ export function ClientDetail({ id }: { id: string }) {
         open={!!dialog}
         onOpenChange={(v) => !v && setDialog("")}
         title={
-          dialog === "package"
-            ? "Change package"
-            : dialog === "overrides"
-              ? "Client overrides"
-              : `${dialog === "suspend" ? "Suspend" : "Reactivate"} client?`
+          dialog === "edit"
+            ? "Edit client"
+            : dialog === "connection"
+              ? "Update connection key"
+              : dialog === "members"
+                ? "Edit member access"
+                : dialog === "package"
+                  ? "Change package"
+                  : dialog === "overrides"
+                    ? "Client overrides"
+                    : `${dialog === "suspend" ? "Suspend" : "Reactivate"} client?`
         }
         wide={dialog === "overrides"}
       >
-        {dialog === "package" ? (
+        {error && <ErrorBox error={error} />}
+        {dialog === "edit" ? (
+          <ClientEdit
+            record={c}
+            busy={busy}
+            onSave={(data) => action("edit", data)}
+          />
+        ) : dialog === "connection" ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = new FormData(e.currentTarget);
+              action("connection", { apiKey: form.get("apiKey") });
+            }}
+          >
+            <p className="muted">
+              Enter a new key for the currently mapped clientspace. It will be
+              verified before replacing the stored key.
+            </p>
+            <label>
+              Clientspace API key
+              <input
+                name="apiKey"
+                type="password"
+                autoComplete="off"
+                required
+              />
+            </label>
+            <div className="form-actions">
+              <Button disabled={busy}>Verify & save key</Button>
+            </div>
+          </form>
+        ) : dialog === "members" ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              action("members", {
+                id: member.id,
+                role: member.role,
+                disabled: member.disabled,
+              });
+            }}
+          >
+            <p>{member?.user.email}</p>
+            <Field
+              name="role"
+              label="Role"
+              value={member?.role}
+              onChange={(role) => setMember({ ...member, role })}
+              options={["CLIENT_OWNER", "CLIENT_ADMIN", "CLIENT_MEMBER"].map(
+                (value) => ({ value, label: value.replace("CLIENT_", "") }),
+              )}
+            />
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={member?.disabled || false}
+                onChange={(e) =>
+                  setMember({ ...member, disabled: e.target.checked })
+                }
+              />
+              Disable workspace access
+            </label>
+            <div className="form-actions">
+              <Button disabled={busy}>Save access</Button>
+            </div>
+          </form>
+        ) : dialog === "package" ? (
           <>
             <Field
               name="packageId"
@@ -231,6 +332,55 @@ export function ClientDetail({ id }: { id: string }) {
         )}
       </Modal>
     </>
+  );
+}
+
+function ClientEdit({
+  record,
+  onSave,
+  busy,
+}: {
+  record: any;
+  onSave: (data: any) => void;
+  busy: boolean;
+}) {
+  const fields = [
+    "company",
+    "firstName",
+    "lastName",
+    "email",
+    "phone",
+    "website",
+    "industry",
+    "country",
+    "timezone",
+  ];
+  const [form, setForm] = useState<any>(
+    Object.fromEntries(fields.map((k) => [k, record[k] || ""])),
+  );
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave(form);
+      }}
+    >
+      <div className="form-grid">
+        {fields.map((k) => (
+          <Field
+            key={k}
+            name={k}
+            label={k.replace(/([A-Z])/g, " $1")}
+            type={k === "email" ? "email" : "text"}
+            value={form[k]}
+            onChange={(v) => setForm({ ...form, [k]: v })}
+          />
+        ))}
+      </div>
+      <div className="form-actions">
+        <Button disabled={busy}>Save client</Button>
+      </div>
+    </form>
   );
 }
 

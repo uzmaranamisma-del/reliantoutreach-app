@@ -2119,3 +2119,24 @@ tbody tr:hover {
   border-top: 1px solid var(--border);
   padding-top: 15px;
 }
+.package-services {
+  margin: 20px 0;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.package-services summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--navy);
+}
+.package-services h3 {
+  margin: 18px 0 8px;
+}
+.package-services ul {
+  list-style: disc;
+  padding-left: 20px;
+}
+.package-services li {
+  margin: 6px 0;
+  line-height: 1.6;
+}

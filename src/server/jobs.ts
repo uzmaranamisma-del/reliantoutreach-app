@@ -9,6 +9,7 @@ import {
 } from "@/lib/manyreach/client";
 import { AppError } from "@/lib/errors";
 import { withLease } from "@/lib/locks";
+import { syncJobNotifications } from "./notifications";
 import {
   getEffectivePermission,
   getEffectiveLimit,
@@ -24,7 +25,7 @@ export async function processJobs() {
       await db.backgroundJob.updateMany({
         where: {
           status: "processing",
-          lockedAt: { lt: new Date(Date.now() - 180000) },
+          lockedAt: { lt: new Date(Date.now() - 300000) },
         },
         data: {
           status: "failed",
@@ -79,81 +80,157 @@ export async function processJobs() {
               });
             }
           } else if (job.type === "prospect-import") {
-            await withLease(`tenant:${job.clientId}`, async () => {
-              const client = await db.client.findUniqueOrThrow({
-                where: { id: job.clientId! },
-                include: {
-                  package: { include: { features: true, limits: true } },
-                  permissions: true,
-                  limits: true,
-                },
-              });
-              const actor = await db.user.findUnique({
-                  where: { id: job.actorId! },
-                }),
-                member = await db.clientMembership.findUnique({
-                  where: {
-                    userId_clientId: {
-                      userId: job.actorId!,
-                      clientId: client.id,
-                    },
+            await withLease(
+              `tenant:${job.clientId}`,
+              async () => {
+                const client = await db.client.findUniqueOrThrow({
+                  where: { id: job.clientId! },
+                  include: {
+                    package: { include: { features: true, limits: true } },
+                    permissions: true,
+                    limits: true,
                   },
                 });
-              if (
-                client.status !== "ACTIVE" ||
-                !actor ||
-                actor.disabled ||
-                (!actor.superadmin && (!member || member.disabled)) ||
-                !getEffectivePermission(
-                  "prospects.import",
-                  actor.superadmin ? "CLIENT_OWNER" : member!.role,
-                  client.package.features,
-                  client.permissions,
+                const actor = await db.user.findUnique({
+                    where: { id: job.actorId! },
+                  }),
+                  member = await db.clientMembership.findUnique({
+                    where: {
+                      userId_clientId: {
+                        userId: job.actorId!,
+                        clientId: client.id,
+                      },
+                    },
+                  });
+                if (
+                  client.status !== "ACTIVE" ||
+                  !actor ||
+                  actor.disabled ||
+                  (!actor.superadmin && (!member || member.disabled)) ||
+                  !getEffectivePermission(
+                    "prospects.import",
+                    actor.superadmin ? "CLIENT_OWNER" : member!.role,
+                    client.package.features,
+                    client.permissions,
+                  )
                 )
-              )
-                throw new AppError(
-                  403,
-                  "Import access is no longer available.",
-                );
-              const p = await forClient(client.id);
-              const batch = payload.rows.slice(progress, progress + 100);
-              const usage = await p.request<ProviderPage>(
-                "/prospects",
-                "GET",
-                undefined,
-                { limit: 1 },
-              );
-              // Conservative reservation: duplicates also consume temporary capacity, never undercount new rows.
-              if (
-                !withinLimit(
-                  usage.pagination.totalItems,
-                  batch.length,
-                  getEffectiveLimit(
-                    "prospects",
-                    client.package.limits,
-                    client.limits,
-                  ),
+                  throw new AppError(
+                    403,
+                    "Import access is no longer available.",
+                  );
+                const p = await forClient(client.id);
+                const can = (key: any) =>
+                  getEffectivePermission(
+                    key,
+                    actor.superadmin ? "CLIENT_OWNER" : member!.role,
+                    client.package.features,
+                    client.permissions,
+                  );
+                if (payload.campaignId) {
+                  if (!can("campaigns.edit"))
+                    throw new AppError(
+                      403,
+                      "Campaign editing access is no longer available.",
+                    );
+                  const campaign = await p.request(
+                    `/campaigns/${payload.campaignId}`,
+                  );
+                  if (!["Draft", "Paused"].includes(campaign.status))
+                    throw new AppError(
+                      422,
+                      "Pause the campaign before enrolling prospects.",
+                    );
+                }
+                if (
+                  (payload.sourceListId || payload.listId) &&
+                  !can("lists.manage")
                 )
-              )
-                throw new AppError(403, "Prospect limit reached.");
-              const imported = await p.request(
-                "/prospects/bulk",
-                "POST",
-                { prospects: batch },
-                { campaignId: payload.campaignId, listId: payload.listId },
-              );
-              if (
-                !Number.isInteger(imported.totalProcessed) ||
-                imported.totalProcessed + (imported.duplicatesInBatch || 0) !==
-                  batch.length
-              )
-                throw new AppError(
-                  502,
-                  "The import result is incomplete or unconfirmed. Review the actual prospects before re-importing.",
+                  throw new AppError(
+                    403,
+                    "List management access is no longer available.",
+                  );
+                const source = payload.sourceListId
+                  ? await p.request<ProviderPage>(
+                      "/prospects",
+                      "GET",
+                      undefined,
+                      {
+                        "includeListIds.listIds": payload.sourceListId,
+                        limit: 100,
+                        startingAfter: payload.cursor,
+                      },
+                    )
+                  : null;
+                const batch = source
+                  ? source.items.map((x) => ({ email: x.email }))
+                  : payload.prospectIds
+                    ? []
+                    : payload.rows.slice(progress, progress + 100);
+                if (payload.prospectIds) {
+                  for (const id of payload.prospectIds.slice(
+                    progress,
+                    progress + 1,
+                  )) {
+                    const prospect = await p.request(`/prospects/${id}`);
+                    batch.push({ email: prospect.email });
+                  }
+                }
+                const usage = await p.request<ProviderPage>(
+                  "/prospects",
+                  "GET",
+                  undefined,
+                  { limit: 1 },
                 );
-              progress += batch.length;
-              done = progress >= payload.rows.length;
-            });
+                // Conservative reservation: duplicates also consume temporary capacity, never undercount new rows.
+                if (
+                  !withinLimit(
+                    usage.pagination.totalItems,
+                    source || payload.prospectIds ? 0 : batch.length,
+                    getEffectiveLimit(
+                      "prospects",
+                      client.package.limits,
+                      client.limits,
+                    ),
+                  )
+                )
+                  throw new AppError(403, "Prospect limit reached.");
+                const imported = batch.length
+                  ? await p.request(
+                      "/prospects/bulk",
+                      "POST",
+                      { prospects: batch },
+                      {
+                        campaignId: payload.campaignId,
+                        listId: payload.listId,
+                      },
+                    )
+                  : { totalProcessed: 0 };
+                if (
+                  !Number.isInteger(imported.totalProcessed) ||
+                  imported.totalProcessed +
+                    (imported.duplicatesInBatch || 0) !==
+                    batch.length
+                )
+                  throw new AppError(
+                    502,
+                    "The import result is incomplete or unconfirmed. Review the actual prospects before re-importing.",
+                  );
+                progress += batch.length;
+                if (source) {
+                  const next = source.pagination.nextCursor;
+                  if (next && String(next) === String(payload.cursor))
+                    throw new AppError(
+                      502,
+                      "The source cursor did not advance. Review the enrollment.",
+                    );
+                  payload.cursor = next;
+                  done = !next;
+                } else
+                  done =
+                    progress >= (payload.prospectIds || payload.rows).length;
+              },
+              180,
+            );
           } else if (job.type === "reconcile") {
             const p = await forClient(job.clientId!);
             const counts: Record<string, number> = {};
@@ -232,9 +309,10 @@ export async function processJobs() {
         update: { value: new Date().toISOString() },
       });
       await cleanup();
+      await syncJobNotifications();
       return { processed };
     },
-    120,
+    240,
   );
 }
 export async function scheduleReconciliation() {
@@ -286,7 +364,7 @@ async function cleanup() {
     }),
     db.backgroundJob.deleteMany({
       where: {
-        status: { in: ["completed", "failed"] },
+        status: { in: ["completed", "failed", "cancelled"] },
         updatedAt: { lt: age(7) },
       },
     }),

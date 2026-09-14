@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { columnsByKind, resourceFields } from "./config";
 import { useContext, useLive } from "./hooks";
 import { ImportForm, ImportJobs } from "./imports";
+import { EnrollmentForm } from "./enrollment";
 type RecordData = Record<string, any>;
 export function Resources({ kind }: { kind: string }) {
   const router = useRouter();
@@ -30,12 +31,25 @@ export function Resources({ kind }: { kind: string }) {
     [selected, setSelected] = useState<any>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [enroll, setEnroll] = useState<any>(),
+    [checked, setChecked] = useState<string[]>([]),
+    [cursorPages, setCursorPages] = useState<string[]>([""]);
+  async function editRecord(r: any) {
+    setBusy(true);
+    try {
+      setEditor(await api(`/api/portal/${kind}/${r.id}`));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search), 300);
     return () => clearTimeout(t);
   }, [search]);
   const query = useLive(
-    `/api/portal/${kind}?page=${page}${["prospects", "senders"].includes(kind) && debounced ? `&search=${encodeURIComponent(debounced)}` : ""}${status ? `&status=${status}` : ""}`,
+    `/api/portal/${kind}?page=${cursorPages[page - 1] ? 1 : page}${cursorPages[page - 1] ? `&cursor=${encodeURIComponent(cursorPages[page - 1])}` : ""}${["prospects", "senders"].includes(kind) && debounced ? `&search=${encodeURIComponent(debounced)}` : ""}${status ? `&status=${status}` : ""}`,
     kind === "campaigns" ? ctx?.poll.campaigns || 25 : 0,
   );
   const can = (v: string) =>
@@ -95,6 +109,7 @@ export function Resources({ kind }: { kind: string }) {
               onClick={() => {
                 setStatus(s);
                 setPage(1);
+                setCursorPages([""]);
               }}
             >
               {s || "All campaigns"}
@@ -103,12 +118,52 @@ export function Resources({ kind }: { kind: string }) {
         </div>
       )}
       {error && <ErrorBox error={error} />}
+      {kind === "prospects" && can("import") && checked.length > 0 && (
+        <div className="toolbar">
+          <span>{checked.length} selected</span>
+          <Button onClick={() => setEnroll({ prospects: checked })}>
+            Add to campaign or list
+          </Button>
+          <Button variant="ghost" onClick={() => setChecked([])}>
+            Clear selection
+          </Button>
+        </div>
+      )}
       <DataTable
         rows={items}
-        columns={columnsByKind[kind]}
+        columns={
+          kind === "prospects" && can("import")
+            ? [
+                {
+                  key: "selected",
+                  label: "Select",
+                  render: (r: any) => (
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${r.email}`}
+                      checked={checked.includes(r.id)}
+                      onChange={(e) =>
+                        setChecked(
+                          e.target.checked
+                            ? [...checked, r.id]
+                            : checked.filter((id) => id !== r.id),
+                        )
+                      }
+                    />
+                  ),
+                },
+                ...columnsByKind[kind],
+              ]
+            : columnsByKind[kind]
+        }
         loading={query.isLoading}
         error={query.error}
-        onSearch={setSearch}
+        onSearch={(v) => {
+          setSearch(v);
+          setPage(1);
+          setCursorPages([""]);
+          setChecked([]);
+        }}
         search={search}
         searchLabel={
           ["campaigns", "lists"].includes(kind)
@@ -117,7 +172,15 @@ export function Resources({ kind }: { kind: string }) {
         }
         page={page}
         total={query.data?.pagination.totalItems}
-        onPage={setPage}
+        onPage={(p) => {
+          if (p > page && query.data?.pagination?.nextCursor)
+            setCursorPages([
+              ...cursorPages.slice(0, page),
+              query.data.pagination.nextCursor,
+            ]);
+          setPage(p);
+          setChecked([]);
+        }}
         actions={(r) => (
           <>
             {kind === "lists" && (
@@ -132,12 +195,22 @@ export function Resources({ kind }: { kind: string }) {
                 Add prospects
               </Button>
             )}
+            {kind === "lists" && ctx?.permissions["prospects.import"] && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEnroll({ sourceList: r.id })}
+              >
+                Enroll list
+              </Button>
+            )}
             {can("edit") && (
               <Button
                 size="sm"
                 variant="ghost"
                 aria-label={`Edit ${singular}`}
-                onClick={() => setEditor(r)}
+                disabled={busy}
+                onClick={() => editRecord(r)}
               >
                 <Pencil size={15} />
               </Button>
@@ -218,6 +291,22 @@ export function Resources({ kind }: { kind: string }) {
             router.push(`/app/campaigns/${id}`);
           }}
         />
+      </Modal>
+      <Modal
+        open={!!enroll}
+        onOpenChange={(v) => !v && setEnroll(undefined)}
+        title="Enroll existing prospects"
+      >
+        {enroll && (
+          <EnrollmentForm
+            {...enroll}
+            onDone={() => {
+              setEnroll(undefined);
+              setChecked([]);
+              query.refetch();
+            }}
+          />
+        )}
       </Modal>
       <Modal
         open={importOpen}

@@ -29,6 +29,7 @@ import { columnsByKind } from "./config";
 import { useContext, useLive } from "./hooks";
 import { ImportForm } from "./imports";
 import { ResourceEditor } from "./resources";
+import { EnrollmentForm } from "./enrollment";
 
 export function CampaignDetail({ id }: { id: string }) {
   const { data: ctx } = useContext(),
@@ -36,6 +37,7 @@ export function CampaignDetail({ id }: { id: string }) {
     [tab, setTab] = useState("Overview"),
     [edit, setEdit] = useState(false),
     [importOpen, setImportOpen] = useState(false),
+    [enrollOpen, setEnrollOpen] = useState(false),
     [confirm, setConfirm] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -157,6 +159,12 @@ export function CampaignDetail({ id }: { id: string }) {
         <>
           <div className="section-title">
             <h2>Campaign prospects</h2>
+            {ctx?.permissions["prospects.import"] &&
+              ctx?.permissions["lists.manage"] && (
+                <Button variant="outline" onClick={() => setEnrollOpen(true)}>
+                  Enroll existing list
+                </Button>
+              )}
             {ctx?.permissions["prospects.import"] && (
               <Button onClick={() => setImportOpen(true)}>
                 <Upload size={16} />
@@ -216,6 +224,19 @@ export function CampaignDetail({ id }: { id: string }) {
           onClose={() => setEdit(false)}
           onDone={() => {
             setEdit(false);
+            q.refetch();
+          }}
+        />
+      </Modal>
+      <Modal
+        open={enrollOpen}
+        onOpenChange={setEnrollOpen}
+        title="Enroll list prospects"
+      >
+        <EnrollmentForm
+          campaign={id}
+          onDone={() => {
+            setEnrollOpen(false);
             q.refetch();
           }}
         />
@@ -301,6 +322,8 @@ export function SequenceEditor({
   canEdit: boolean;
 }) {
   const q = useLive(`/api/portal/campaigns/${campaign}/sequences`),
+    [sequenceForm, setSequenceForm] = useState<any>(),
+    [deletion, setDeletion] = useState<any>(),
     [form, setForm] = useState<any>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -314,6 +337,8 @@ export function SequenceEditor({
         ...data,
       });
       setForm(undefined);
+      setSequenceForm(undefined);
+      setDeletion(undefined);
       q.refetch();
     } catch (e) {
       setError((e as Error).message);
@@ -334,10 +359,15 @@ export function SequenceEditor({
           <Button
             disabled={busy}
             onClick={() =>
-              mutate("create", {
+              setSequenceForm({
                 data: {
                   name: "Follow-up sequence",
                   conditionReply: "NotReplied",
+                  conditionExtra: false,
+                  conditionNegate: false,
+                  conditionTimes: 1,
+                  conditionAction: "Opened",
+                  conditionOperator: "GreaterThanOrEqual",
                 },
               })
             }
@@ -365,6 +395,45 @@ export function SequenceEditor({
             <div className="section-title">
               <h3>{s.name || "Sequence"}</h3>
               <Status value={s.conditionReply} />
+              {canEdit && (
+                <div className="row-actions">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setSequenceForm({
+                        sequenceId: s.id,
+                        version: s.version,
+                        data: {
+                          name: s.name,
+                          conditionReply: s.conditionReply,
+                          conditionExtra: s.conditionExtra || false,
+                          conditionNegate: s.conditionNegate || false,
+                          conditionTimes: s.conditionTimes ?? 1,
+                          conditionAction: s.conditionAction || "Opened",
+                          conditionOperator:
+                            s.conditionOperator || "GreaterThanOrEqual",
+                        },
+                      })
+                    }
+                  >
+                    Edit conditions
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setDeletion({
+                        action: "delete-sequence",
+                        sequenceId: s.id,
+                        version: s.version,
+                      })
+                    }
+                  >
+                    Delete sequence
+                  </Button>
+                </div>
+              )}
             </div>
             {s.followups.map((f: any, i: number) => (
               <div className="sequence-step" key={f.id}>
@@ -380,24 +449,41 @@ export function SequenceEditor({
                   />
                 </div>
                 {canEdit && (
-                  <Button
-                    variant="ghost"
-                    onClick={() =>
-                      setForm({
-                        sequenceId: s.id,
-                        followupId: f.id,
-                        version: f.version,
-                        data: {
-                          subject: f.subject || "",
-                          body: f.body || "",
-                          waitMin: f.waitMin,
-                          waitUnits: f.waitUnits,
-                        },
-                      })
-                    }
-                  >
-                    <Pencil size={16} />
-                  </Button>
+                  <>
+                    <Button
+                      aria-label="Edit follow-up"
+                      variant="ghost"
+                      onClick={() =>
+                        setForm({
+                          sequenceId: s.id,
+                          followupId: f.id,
+                          version: f.version,
+                          data: {
+                            subject: f.subject || "",
+                            body: f.body || "",
+                            waitMin: f.waitMin,
+                            waitUnits: f.waitUnits,
+                          },
+                        })
+                      }
+                    >
+                      <Pencil size={16} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setDeletion({
+                          action: "delete",
+                          sequenceId: s.id,
+                          followupId: f.id,
+                          version: f.version,
+                        })
+                      }
+                    >
+                      Delete
+                    </Button>
+                  </>
                 )}
               </div>
             ))}
@@ -425,6 +511,169 @@ export function SequenceEditor({
           </section>
         ))
       )}
+      <Modal
+        open={!!deletion}
+        onOpenChange={(v) => !v && setDeletion(undefined)}
+        title="Delete this sequence step?"
+      >
+        <p>
+          This removes the selected{" "}
+          {deletion?.action === "delete-sequence"
+            ? "sequence and its follow-ups"
+            : "follow-up"}{" "}
+          from the campaign.
+        </p>
+        <div className="form-actions">
+          <Button variant="outline" onClick={() => setDeletion(undefined)}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={busy}
+            onClick={() =>
+              mutate(deletion.action, { ...deletion, confirm: true })
+            }
+          >
+            Delete
+          </Button>
+        </div>
+      </Modal>
+      <Modal
+        open={!!sequenceForm}
+        onOpenChange={(v) => !v && setSequenceForm(undefined)}
+        title="Sequence conditions"
+      >
+        {sequenceForm && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              mutate(
+                sequenceForm.sequenceId ? "edit-sequence" : "create",
+                sequenceForm,
+              );
+            }}
+          >
+            <Field
+              name="sequenceName"
+              label="Sequence name"
+              value={sequenceForm.data.name}
+              onChange={(name) =>
+                setSequenceForm({
+                  ...sequenceForm,
+                  data: { ...sequenceForm.data, name },
+                })
+              }
+            />
+            <Field
+              name="conditionReply"
+              label="Enter sequence when"
+              value={sequenceForm.data.conditionReply}
+              onChange={(conditionReply) =>
+                setSequenceForm({
+                  ...sequenceForm,
+                  data: { ...sequenceForm.data, conditionReply },
+                })
+              }
+              options={[
+                "All",
+                "Opened",
+                "NotOpened",
+                "NotReplied",
+                "Replied",
+                "RepliedInterested",
+                "RepliedNotInterested",
+                "RepliedNeutral",
+                "RepliedMaybeLater",
+                "Converted",
+                "NotConverted",
+                "Won",
+                "MeetingBooked",
+                "MeetingCompleted",
+              ].map((value) => ({
+                value,
+                label: value.replace(/([A-Z])/g, " $1").trim(),
+              }))}
+            />
+            {["conditionExtra", "conditionNegate"].map((k) => (
+              <label className="check" key={k}>
+                <input
+                  type="checkbox"
+                  checked={sequenceForm.data[k]}
+                  onChange={(e) =>
+                    setSequenceForm({
+                      ...sequenceForm,
+                      data: { ...sequenceForm.data, [k]: e.target.checked },
+                    })
+                  }
+                />
+                {k === "conditionExtra"
+                  ? "Use an additional action condition"
+                  : "Invert condition"}
+              </label>
+            ))}
+            {sequenceForm.data.conditionExtra && (
+              <>
+                <Field
+                  name="conditionAction"
+                  label="Action"
+                  value={sequenceForm.data.conditionAction}
+                  onChange={(conditionAction) =>
+                    setSequenceForm({
+                      ...sequenceForm,
+                      data: { ...sequenceForm.data, conditionAction },
+                    })
+                  }
+                  options={[
+                    "Opened",
+                    "Clicked",
+                    "Bounced",
+                    "Unsubscribed",
+                    "Converted",
+                    "Replied",
+                  ].map((value) => ({ value, label: value }))}
+                />
+                <Field
+                  name="conditionOperator"
+                  label="Comparison"
+                  value={sequenceForm.data.conditionOperator}
+                  onChange={(conditionOperator) =>
+                    setSequenceForm({
+                      ...sequenceForm,
+                      data: { ...sequenceForm.data, conditionOperator },
+                    })
+                  }
+                  options={[
+                    "GreaterThanOrEqual",
+                    "LessThanOrEqual",
+                    "Equal",
+                    "NotEqual",
+                    "GreaterThan",
+                    "LessThan",
+                  ].map((value) => ({
+                    value,
+                    label: value.replace(/([A-Z])/g, " $1").trim(),
+                  }))}
+                />
+                <Field
+                  name="conditionTimes"
+                  label="Count"
+                  type="number"
+                  value={sequenceForm.data.conditionTimes}
+                  onChange={(conditionTimes) =>
+                    setSequenceForm({
+                      ...sequenceForm,
+                      data: { ...sequenceForm.data, conditionTimes },
+                    })
+                  }
+                />
+              </>
+            )}
+            <div className="form-actions">
+              <Button disabled={busy}>Save sequence</Button>
+            </div>
+          </form>
+        )}
+      </Modal>
       <Modal
         open={!!form}
         onOpenChange={(v) => !v && setForm(undefined)}

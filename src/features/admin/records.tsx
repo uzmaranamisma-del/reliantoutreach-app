@@ -7,13 +7,16 @@ import {
   Status,
 } from "@/components/data";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/dialog";
 import { useLive } from "@/features/portal/hooks";
 import { api } from "@/lib/browser-api";
 import { useState } from "react";
 
 export function AdminRecords({ kind }: { kind: string }) {
   const [page, setPage] = useState(1),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [pending, setPending] = useState<any>(),
+    [busy, setBusy] = useState(false);
   const q = useLive(`/api/admin/${kind}?page=${page}`);
   const definitions: Record<string, any[]> = {
     users: [
@@ -144,9 +147,75 @@ export function AdminRecords({ kind }: { kind: string }) {
                     </Button>
                   </>
                 )
-            : undefined
+            : kind === "users"
+              ? (r) => (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setPending({
+                        title: r.disabled ? "Enable user?" : "Disable user?",
+                        message: `${r.email} ${r.disabled ? "will regain access" : "will be signed out and lose application access"}.`,
+                        url: `/api/admin/users/${r.id}`,
+                        data: { disabled: !r.disabled },
+                      })
+                    }
+                  >
+                    {r.disabled ? "Enable" : "Disable"}
+                  </Button>
+                )
+              : kind === "jobs"
+                ? (r) =>
+                    ["pending", "retry"].includes(r.status) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setPending({
+                            title: "Cancel queued job?",
+                            message:
+                              "Unprocessed work will be cancelled. Work already completed is retained.",
+                            url: `/api/admin/jobs/${r.id}/cancel`,
+                            data: {},
+                          })
+                        }
+                      >
+                        Cancel job
+                      </Button>
+                    )
+                : undefined
         }
       />
+      <Modal
+        open={!!pending}
+        onOpenChange={(v) => !v && setPending(undefined)}
+        title={pending?.title || "Confirm action"}
+      >
+        <p>{pending?.message}</p>
+        <div className="form-actions">
+          <Button variant="outline" onClick={() => setPending(undefined)}>
+            Back
+          </Button>
+          <Button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await api(pending.url, pending.data);
+                setPending(undefined);
+                q.refetch();
+              } catch (e) {
+                setError((e as Error).message);
+                setPending(undefined);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Confirm
+          </Button>
+        </div>
+      </Modal>
     </>
   );
 }

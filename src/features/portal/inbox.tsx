@@ -19,6 +19,7 @@ export function Inbox() {
     [filter, setFilter] = useState(""),
     [page, setPage] = useState(1),
     [cursor, setCursor] = useState(""),
+    [historyCursor, setHistoryCursor] = useState(""),
     [selected, setSelected] = useState<any>(),
     [body, setBody] = useState(""),
     [replyKey, setReplyKey] = useState(() => crypto.randomUUID()),
@@ -30,13 +31,15 @@ export function Inbox() {
     ctx?.poll.inbox || 15,
   );
   const history = useQuery({
-    queryKey: ["thread", selected?.fromEmail],
+    queryKey: ["thread", selected?.fromEmail, historyCursor],
     queryFn: () =>
       api(
-        `/api/portal/inbox/thread?email=${encodeURIComponent(selected.fromEmail)}`,
+        `/api/portal/inbox/thread?email=${encodeURIComponent(selected.fromEmail)}&cursor=${encodeURIComponent(historyCursor)}`,
       ),
     enabled: !!selected,
-    refetchInterval: Math.max(10, ctx?.poll.inbox || 15) * 1000,
+    refetchInterval: historyCursor
+      ? false
+      : Math.max(10, ctx?.poll.inbox || 15) * 1000,
   });
   return (
     <>
@@ -101,6 +104,7 @@ export function Inbox() {
                 key={m.id}
                 onClick={() => {
                   setSelected(m);
+                  setHistoryCursor("");
                   setBody("");
                   setReplyKey(crypto.randomUUID());
                 }}
@@ -160,6 +164,31 @@ export function Inbox() {
                 <p>{selected.fromEmail}</p>
               </div>
               <div className="thread-messages">
+                <div className="form-actions">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={!historyCursor}
+                    onClick={() => setHistoryCursor("")}
+                  >
+                    Latest messages
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={
+                      !history.data?.pagination?.nextCursor ||
+                      history.isFetching
+                    }
+                    onClick={() =>
+                      setHistoryCursor(
+                        String(history.data.pagination.nextCursor),
+                      )
+                    }
+                  >
+                    Older messages
+                  </Button>
+                </div>
                 {history.error && <ErrorBox error={history.error} />}{" "}
                 {(history.data?.items?.length
                   ? history.data.items

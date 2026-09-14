@@ -1,4 +1,5 @@
 import { vi, it, expect, beforeEach } from "vitest";
+vi.mock("@/server/notifications", () => ({ syncJobNotifications: vi.fn() }));
 vi.mock("@/lib/locks", () => ({
   withLease: (_key: string, fn: () => Promise<unknown>) => fn(),
 }));

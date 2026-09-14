@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/browser-api";
 import { Button } from "./ui/button";
+import { defaultBranding } from "@/lib/branding";
 const clientNav = [
   ["Dashboard", "", LayoutDashboard, ""],
   ["Campaigns", "campaigns", Send, "campaigns.view"],
@@ -39,6 +40,7 @@ const clientNav = [
   ["Analytics", "analytics", ChartNoAxesCombined, "analytics.view"],
   ["Team", "team", Users, "team.manage"],
   ["Usage", "usage", Layers, ""],
+  ["Notifications", "notifications", Activity, ""],
   ["Settings", "settings", Settings, ""],
 ] as const;
 const adminNav = [
@@ -50,6 +52,7 @@ const adminNav = [
   ["Jobs", "jobs", Clock, ""],
   ["System health", "system", Activity, ""],
   ["Audit log", "audit", ClipboardList, ""],
+  ["Settings", "settings", Settings, ""],
 ] as const;
 export function Shell({
   children,
@@ -68,13 +71,27 @@ export function Shell({
     enabled: !admin,
   });
   const base = admin ? "/admin" : "/app";
+  const brandQuery = useQuery({
+    queryKey: ["branding"],
+    queryFn: () => api("/api/branding"),
+    staleTime: 60000,
+  });
+  const brand = brandQuery.data || defaultBranding;
   const nav = admin ? adminNav : clientNav;
   const current =
     nav.find(([, slug]) =>
       slug ? path.startsWith(`${base}/${slug}`) : path === base,
     )?.[0] || "Workspace";
   return (
-    <div className="shell">
+    <div
+      className="shell"
+      style={
+        {
+          "--blue": brand.accentColor,
+          "--interaction": brand.accentColor,
+        } as React.CSSProperties
+      }
+    >
       {open && (
         <button
           className="drawer-scrim"
@@ -87,7 +104,7 @@ export function Shell({
           <span className="brand-mark">
             <ArrowUpRight size={23} />
           </span>
-          Reliant<span>Outreach</span>
+          {brand.productName}
         </Link>
         <div className="workspace-card">
           <span className="workspace-avatar">
@@ -128,7 +145,13 @@ export function Shell({
           <div className="sidebar-help">
             <LifeBuoy size={20} />
             <strong>Need a hand?</strong>
-            <p>Contact your workspace administrator for support.</p>
+            <p>
+              {brand.supportEmail ? (
+                <a href={`mailto:${brand.supportEmail}`}>Contact support</a>
+              ) : (
+                "Contact your workspace administrator for support."
+              )}
+            </p>
           </div>
           <button
             className="profile"
@@ -188,8 +211,19 @@ export function Shell({
         )}
         <main className="page-content">{children}</main>
         <footer className="app-footer">
-          <span>ReliantOutreach</span>
-          <span>Your next conversation starts here.</span>
+          <span>{brand.productName}</span>
+          <span>
+            {brand.privacyUrl && (
+              <a href={brand.privacyUrl} target="_blank" rel="noreferrer">
+                Privacy policy ·{" "}
+              </a>
+            )}
+            {brand.termsUrl && (
+              <a href={brand.termsUrl} target="_blank" rel="noreferrer">
+                Service terms
+              </a>
+            )}
+          </span>
         </footer>
       </div>
     </div>

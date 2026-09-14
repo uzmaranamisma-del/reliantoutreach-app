@@ -18,7 +18,7 @@ Open the hosting site's **Advanced → Cron Jobs** and choose a custom command. 
 Example custom command (replace the domain and secret in hPanel):
 
 ```sh
-curl --fail --silent --show-error --max-time 90 --request POST --header 'Authorization: Bearer REPLACE_WITH_CRON_SECRET' 'https://app.reliantoutreach.com/api/internal/cron/process-jobs'
+curl --fail --silent --show-error --max-time 240 --request POST --header 'Authorization: Bearer REPLACE_WITH_CRON_SECRET' 'https://app.reliantoutreach.com/api/internal/cron/process-jobs'
 ```
 
 This uses the hosting account's curl command, not a daemon. Do not store the live command in GitHub. If the cron UI does not support this custom command or curl is unavailable, confirm the supported HTTP invocation with Hostinger before launch. Do not fabricate an extra server as a workaround.
@@ -31,8 +31,9 @@ This uses the hosting account's curl command, not a daemon. Do not store the liv
 - Process one group of at most 100 rows per import job, persisting progress and rechecking current tenant status, membership, permission and capacity before each group.
 - Refresh small resource-count usage snapshots and mapping sync timestamps.
 - Run metadata retention cleanup.
+- Publish terminal job results as workspace notifications. Process notification backlog in bounded, deduplicated groups.
 
-The processor stops beginning new jobs after roughly 35 seconds. Individual provider requests have 12-second timeouts, so an in-progress job can exceed that budget; the HTTP timeout is 90 seconds. Load-test this against the actual plan's runtime/request limits. Processing leases last 120 seconds; jobs stuck in processing for over three minutes are marked failed for review, **not automatically replayed**.
+The processor stops beginning new jobs after roughly 35 seconds. Individual provider requests have 12-second timeouts and safe GET retries, so an in-progress job can exceed that budget; the example HTTP timeout is 240 seconds. Verify the plan supports this request duration. The processor lease lasts 240 seconds and an import tenant lease lasts 180 seconds. Jobs stuck in processing for over five minutes are marked failed for review, **not automatically replayed**. CSV/list enrollment uses at most 100 rows per group; explicitly selected prospects use one verified prospect per group to bound API calls. Measure this conservative throughput before accepting large imports.
 
 Temporary provider errors can schedule exponential-backoff retries. Ambiguous writes and failed email delivery require review. SMTP and provider API calls are not part of a distributed transaction; exactly-once external side effects are not claimed. Review the real state before re-submitting an interrupted import/reply.
 

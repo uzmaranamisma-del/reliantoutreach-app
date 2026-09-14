@@ -6,6 +6,7 @@ import { Dashboard } from "./portal/dashboard";
 import { Inbox } from "./portal/inbox";
 import { Resources } from "./portal/resources";
 import { Settings, Team, Usage } from "./portal/workspace";
+import { Notifications } from "./portal/notifications";
 export { useLive } from "./portal/hooks";
 export function Portal({ path }: { path: string[] }) {
   const section = path[0] || "dashboard";
@@ -19,5 +20,6 @@ export function Portal({ path }: { path: string[] }) {
   if (section === "usage") return <Usage />;
   if (section === "team") return <Team />;
   if (section === "settings") return <Settings />;
+  if (section === "notifications") return <Notifications />;
   return <Empty title="Page not found" />;
 }

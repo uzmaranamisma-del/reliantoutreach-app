@@ -12,6 +12,17 @@ export const packageInput = z
     description: z.string().max(2000),
     price: z.coerce.number().min(0).max(1000000),
     billingLabel: z.string().min(1).max(100),
+    setupPrice: z.coerce.number().min(0).max(1000000).default(0),
+    currency: z.enum(["USD", "GBP", "EUR", "PKR"]).default("USD"),
+    serviceType: z.enum(["EMAIL", "LINKEDIN"]).default("EMAIL"),
+    minimumMonths: z.coerce.number().int().min(0).max(60).default(0),
+    setupIncludes: z.array(z.string().min(1).max(500)).max(40).default([]),
+    monthlyIncludes: z.array(z.string().min(1).max(500)).max(40).default([]),
+    commercialTerms: z.string().max(4000).default(""),
+    sourceUrl: z.union([z.url(), z.literal("")]).default(""),
+    initialMessages: z.number().int().min(0).nullable().default(null),
+    monthlyMessages: z.number().int().min(0).nullable().default(null),
+    requiresLimitReview: z.boolean().default(false),
     active: z.boolean().default(true),
     displayOrder: z.coerce.number().int().min(0).default(0),
     features: z
@@ -27,6 +38,12 @@ export const packageInput = z
       .max(10),
   })
   .superRefine((v, c) => {
+    if (v.active && v.requiresLimitReview)
+      c.addIssue({
+        code: "custom",
+        message:
+          "Review and confirm the resource limits before activating this package.",
+      });
     if (
       new Set(v.features.map((f) => f.key)).size !== v.features.length ||
       new Set(v.limits.map((f) => f.key)).size !== v.limits.length
@@ -96,7 +113,12 @@ export async function createClient(actorId: string, input: unknown) {
   const data = clientInput.parse(input);
   if (
     !(await db.package.findFirst({
-      where: { id: data.packageId, active: true },
+      where: {
+        id: data.packageId,
+        active: true,
+        serviceType: "EMAIL",
+        requiresLimitReview: false,
+      },
     }))
   )
     throw new AppError(422, "Choose an active package.");
