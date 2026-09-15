@@ -28,6 +28,7 @@ import { createInvitation } from "@/server/invitations";
 import { withLease } from "@/lib/locks";
 import { queueEnrollment } from "@/server/enrollment";
 import { forClient } from "@/lib/manyreach/client";
+import { pushConfigured } from "@/server/push";
 const resources = ["campaigns", "prospects", "lists", "senders"];
 
 const senderImportRequired = [
@@ -195,6 +196,13 @@ export const GET = endpoint(async (request, context) => {
       },
     };
   }
+  if (section === "push") {
+    await tenant(request);
+    return {
+      configured: pushConfigured(),
+      publicKey: process.env.VAPID_PUBLIC_KEY || null,
+    };
+  }
   const ctx = await tenant(request);
   if (section === "packages") {
     const items = await db.package.findMany({
@@ -337,6 +345,51 @@ export const POST = endpoint(async (request, context) => {
   const { path } = await context.params;
   const [section, id, action] = path;
   const input = await json(request, section === "imports" ? 3_000_000 : 128000);
+  if (section === "push") {
+    const ctx = await tenant(request);
+    const parsed = z
+      .object({
+        action: z.enum(["subscribe", "unsubscribe"]),
+        endpoint: z.string().url().max(768),
+        keys: z
+          .object({
+            p256dh: z.string().min(16).max(200),
+            auth: z.string().min(8).max(200),
+          })
+          .optional(),
+      })
+      .parse(input);
+    if (parsed.action === "unsubscribe") {
+      await db.pushSubscription.deleteMany({
+        where: {
+          userId: ctx.user.id,
+          clientId: ctx.client.id,
+          endpoint: parsed.endpoint,
+        },
+      });
+      return { ok: true };
+    }
+    if (!parsed.keys)
+      throw new AppError(422, "Push subscription keys are required.");
+    await db.pushSubscription.upsert({
+      where: {
+        userId_clientId_endpoint: {
+          userId: ctx.user.id,
+          clientId: ctx.client.id,
+          endpoint: parsed.endpoint,
+        },
+      },
+      create: {
+        userId: ctx.user.id,
+        clientId: ctx.client.id,
+        endpoint: parsed.endpoint,
+        p256dh: parsed.keys.p256dh,
+        auth: parsed.keys.auth,
+      },
+      update: { p256dh: parsed.keys.p256dh, auth: parsed.keys.auth },
+    });
+    return { ok: true };
+  }
   if (section === "enrollments") return queueEnrollment(request, input);
   if (section === "templates") {
     const ctx = await tenant(request, "campaigns.create");

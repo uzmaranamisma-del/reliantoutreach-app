@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type InstallPrompt = Event & {
   prompt: () => Promise<void>;
@@ -13,6 +13,7 @@ export function PwaRuntime() {
   const [permission, setPermission] = useState<NotificationPermission>(
     "default",
   );
+  const [pushConfigured, setPushConfigured] = useState(false);
   const lastId = useRef<string | undefined>(undefined),
     lastReplyId = useRef<string | undefined>(undefined);
 
@@ -27,6 +28,61 @@ export function PwaRuntime() {
     navigator.serviceWorker?.register("/sw.js").catch(() => undefined);
     return () => window.removeEventListener("beforeinstallprompt", onInstallPrompt);
   }, []);
+
+  const loadPushConfig = useCallback(async () => {
+    const response = await fetch("/api/portal/push", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!response.ok) return undefined;
+    const config = await response.json();
+    setPushConfigured(Boolean(config.configured && config.publicKey));
+    return config as { configured: boolean; publicKey?: string };
+  }, []);
+
+  const registerPushSubscription = useCallback(async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    const config = await loadPushConfig();
+    if (
+      Notification.permission !== "granted" ||
+      !config?.configured ||
+      !config.publicKey
+    )
+      return;
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      const padding = "=".repeat((4 - (config.publicKey.length % 4)) % 4);
+      const key = Uint8Array.from(
+        atob(
+          (config.publicKey + padding)
+            .replaceAll("-", "+")
+            .replaceAll("_", "/"),
+        ),
+        (char) => char.charCodeAt(0),
+      );
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: key,
+      });
+    }
+    const json = subscription.toJSON();
+    if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) return;
+    await fetch("/api/portal/push", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "subscribe",
+        endpoint: json.endpoint,
+        keys: json.keys,
+      }),
+    });
+  }, [loadPushConfig]);
+
+  useEffect(() => {
+    loadPushConfig().catch(() => undefined);
+  }, [loadPushConfig]);
 
   useEffect(() => {
     let stopped = false;
@@ -94,10 +150,16 @@ export function PwaRuntime() {
     };
   }, []);
 
+  useEffect(() => {
+    if (permission === "granted")
+      registerPushSubscription().catch(() => undefined);
+  }, [permission, registerPushSubscription]);
+
   async function enableAlerts() {
     if (!("Notification" in window)) return;
     const result = await Notification.requestPermission();
     setPermission(result);
+    if (result === "granted") await registerPushSubscription();
   }
 
   async function install() {
@@ -118,6 +180,7 @@ export function PwaRuntime() {
   return (
     <div className="pwa-actions" role="status">
       {permission === "default" &&
+        pushConfigured &&
         typeof window !== "undefined" &&
         "Notification" in window && (
         <button type="button" onClick={enableAlerts}>

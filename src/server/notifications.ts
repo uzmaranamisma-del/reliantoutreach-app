@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { sendPushNotification } from "./push";
 // Read terminal jobs in stable order so busy workspaces cannot starve older notices.
 export async function syncJobNotifications() {
   const cursor = await db.appSetting.findUnique({
@@ -26,14 +27,18 @@ export async function syncJobNotifications() {
     },
   });
   for (const job of jobs) {
-    await db.notification.upsert({
-      where: { id: `job:${job.id}` },
-      create: {
-        id: `job:${job.id}`,
-        clientId: job.clientId!,
-        title: `${job.type === "prospect-import" ? "Prospect import / enrollment" : job.type === "reconcile" ? "Workspace sync" : job.type === "client-onboarding" ? "Workspace setup" : "Invitation delivery"}: ${job.status}`,
-      },
-      update: {},
+    const id = `job:${job.id}`;
+    const existing = await db.notification.findUnique({ where: { id } });
+    if (existing) continue;
+    const title = `${job.type === "prospect-import" ? "Prospect import / enrollment" : job.type === "reconcile" ? "Workspace sync" : job.type === "client-onboarding" ? "Workspace setup" : "Invitation delivery"}: ${job.status}`;
+    await db.notification.create({
+      data: { id, clientId: job.clientId!, title },
+    });
+    await sendPushNotification(job.clientId!, {
+      title,
+      body: "Open ReliantOutreach to review this update.",
+      url: "/app/notifications",
+      tag: id,
     });
   }
   if (jobs.length) {
