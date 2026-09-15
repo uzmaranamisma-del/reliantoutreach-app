@@ -12,6 +12,7 @@ Checked on 2026-09-14 and 2026-09-15 on Windows with Node.js 24.18.0.
 | Local MySQL checks | Passed | Competing job claim/cancellation has one winner; active lease excludes another caller and can be reused after release; transaction rollback removes test writes |
 | Authenticated local admin | Passed | Real Superadmin login, four persisted package cards and package editor; settings save persisted successfully |
 | Production build | Passed | `npm run build`; Next.js 16.3.5, all pages and route handlers compiled |
+| Manyreach API contract | Passed | Supplied Swagger 2.0 document v2.5.0: HTTPS host/header authentication, key models and all 90 endpoint-method pairs match the checked manifest |
 | Browser smoke tests | 6 passed | Playwright using installed Microsoft Edge in Chromium mode; desktop and mobile login/reset forms and unauthenticated portal protection |
 | Visual checks | Passed for public auth screens | Desktop 1280 × 720 and mobile 390 × 844, no horizontal overflow |
 | Hostinger UI inspection | Deploy Web App offered | Actual signed-in Unlimited plan; Node onboarding opened and exited without submitting deployment |

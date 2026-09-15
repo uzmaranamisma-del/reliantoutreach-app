@@ -4,7 +4,7 @@
 
 A single Next.js full-stack outreach application for Hostinger managed Node.js hosting, using Prisma + MySQL and a server-side Manyreach REST v2 integration.
 
-**Status: implemented application, not a production-approved release.** The production build passes, but no live Hostinger/MySQL/SMTP/Manyreach credentials were supplied. The user's full acceptance scenario has not been executed. Read [RELEASE_GATES.md](RELEASE_GATES.md) before deployment. In particular, webhooks are deliberately disabled and strict monthly sending caps remain unresolved; finite monthly caps block new campaign starts and manual replies.
+**Status: implemented application, not a production-approved release.** The production build and local MySQL checks pass, Hostinger SMTP authentication is configured locally, and the supplied Manyreach Swagger v2.5.0 contract matches the checked 90-endpoint manifest. The user's full live acceptance scenario has not been executed. Read [RELEASE_GATES.md](RELEASE_GATES.md) before deployment. In particular, webhooks are deliberately disabled and strict monthly sending caps remain unresolved; finite monthly caps block new campaign starts and manual replies.
 
 ## What is implemented
 
@@ -13,6 +13,7 @@ A single Next.js full-stack outreach application for Hostinger managed Node.js h
 - MySQL-backed packages, feature permissions, limits, per-client overrides, membership roles, suspension and audited 30-minute impersonation.
 - Superadmin package editor, client creation/mapping wizard, invitations, client package/override controls, users listing, audit log, job monitor and system health.
 - Central Manyreach adapter: official X-API-Key authentication; per-clientspace credentials encrypted with AES-256-GCM; no browser-provider calls; bounded GET retries, timeouts, per-organization request budgets and Retry-After cooldown.
+- Repeatable Manyreach Swagger contract verification with `npm run verify:manyreach -- C:\path\to\v2.json`; the source specification remains outside the repository.
 - Live campaign list/detail, draft builder, basic campaign editor, start/pause, draft duplication; sequences and follow-up creation/edit; prospects/lists/senders CRUD; CSV mapping and background imports; incoming replies, prospect message history and replies; campaign-specific time-series analytics and CSV export.
 - Encrypted, tenant-bound external identifiers. Every client operation derives the tenant from the stored session and membership. The server uses only that clientspace's key.
 - MySQL job processor invoked by one authenticated cron endpoint. Imports are encrypted temporary payloads, processed in groups of at most 100 rows. No Redis, separate worker, Docker, root access or permanent daemon.
