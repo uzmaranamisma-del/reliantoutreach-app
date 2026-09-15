@@ -166,7 +166,12 @@ export async function createClient(actorId: string, input: unknown) {
       throw new AppError(502, "Clientspace credentials could not be verified.");
     if (
       await db.manyreachClientspace.findUnique({
-        where: { providerId: space.clientspaceId },
+        where: {
+          providerType_providerId: {
+            providerType: "clientspace",
+            providerId: space.clientspaceId,
+          },
+        },
       })
     )
       throw new AppError(409, "This clientspace is already assigned.");

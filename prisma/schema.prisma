@@ -180,11 +180,13 @@ model ClientLimitOverride {
 model ManyreachClientspace {
   id String @id @default(cuid())
   clientId String @unique
-  providerId Int @unique
+  providerId Int
+  providerType String @default("clientspace") @db.VarChar(20)
   encryptedApiKey String @db.Text
   lastSyncAt DateTime?
   lastError String?
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([providerType, providerId])
 }
 model Invitation {
   id String @id @default(cuid())

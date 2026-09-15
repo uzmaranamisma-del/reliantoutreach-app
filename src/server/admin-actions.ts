@@ -18,16 +18,17 @@ export async function rotateConnection(
     where: { clientId },
   });
   const providerId = mapping?.providerId ?? clientspaceId;
+  const providerType = mapping?.providerType ?? "clientspace";
   if (!providerId)
     throw new AppError(422, "Enter the clientspace ID for this connection.");
   const account = await providerRequest(
     apiKey,
-    `clientspace:${providerId}`,
+    `${providerType}:${providerId}`,
     "/account",
   );
   if (
     Number(account.id) !== providerId ||
-    String(account.keyType).toLowerCase() !== "clientspace"
+    String(account.keyType).toLowerCase() !== providerType
   )
     throw new AppError(
       422,

@@ -140,7 +140,7 @@ export async function forClient(clientId: string) {
     ) =>
       providerRequest<T>(
         key,
-        `clientspace:${mapping.providerId}`,
+        `${mapping.providerType ?? "clientspace"}:${mapping.providerId}`,
         path,
         method,
         body,

@@ -254,7 +254,7 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
               <Mail />
             </div>
             <label>
-              Manyreach clientspace API key
+              Manyreach workspace / clientspace API key
               <input
                 name="manyreachApiKey"
                 type="password"
@@ -265,10 +265,10 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
               />
             </label>
             <p className="muted">
-              Use the isolated clientspace key, or an agency key when the
-              Manyreach Subaccount name exactly matches this client. Campaigns,
-              prospects, lists, senders and replies are checked before the owner
-              invitation is queued.
+              Use the isolated workspace or clientspace key, or an agency key
+              when the Manyreach Workspace or Clientspace name exactly matches
+              this client. Campaigns, prospects, lists, senders and replies are
+              checked before the owner invitation is queued.
             </p>
             {createdId && (
               <p className="notice">

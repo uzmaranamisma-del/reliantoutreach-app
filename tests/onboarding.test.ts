@@ -79,6 +79,7 @@ beforeEach(() => {
 it("resolves a matching Subaccount from an agency key and stores only its isolated key", async () => {
   vi.mocked(providerRequest)
     .mockResolvedValueOnce({ id: 1, keyType: "agency" })
+    .mockResolvedValueOnce({ items: [], pagination: { totalItems: 0 } })
     .mockResolvedValueOnce({
       items: [{ clientspaceId: 10, title: "Test", apiKey: "isolated-key" }],
       pagination: { totalItems: 1 },
@@ -111,9 +112,110 @@ it("does not guess a Subaccount when an agency key has no exact company match", 
       ],
       pagination: { totalItems: 1 },
     });
+  vi.mocked(providerRequest).mockResolvedValueOnce({
+    items: [],
+    pagination: { totalItems: 0 },
+  });
   await expect(
     queueOnboarding("admin", "A", { key, apiKey: "agency-secret" }),
-  ).rejects.toThrow('Subaccount named "Test"');
+  ).rejects.toThrow('Clientspace named "Test"');
+  expect(db.manyreachClientspace.upsert).not.toHaveBeenCalled();
+});
+it("accepts an isolated workspace key without agency lookup or a name match", async () => {
+  vi.mocked(providerRequest).mockResolvedValue({
+    id: 10,
+    keyType: "workspace",
+    title: "Other display name",
+  });
+  await queueOnboarding("admin", "A", { key, apiKey: "workspace-key" });
+  expect(providerRequest).toHaveBeenCalledTimes(1);
+  expect(db.manyreachClientspace.findUnique).toHaveBeenCalledWith({
+    where: {
+      providerType_providerId: { providerType: "workspace", providerId: 10 },
+    },
+  });
+  expect(db.manyreachClientspace.upsert).toHaveBeenCalledWith(
+    expect.objectContaining({
+      create: expect.objectContaining({
+        providerType: "workspace",
+        providerId: 10,
+        encryptedApiKey: "encrypted:workspace-key",
+      }),
+    }),
+  );
+});
+it("finds a workspace on a later page using an organization key", async () => {
+  vi.mocked(providerRequest)
+    .mockResolvedValueOnce({ id: 1, keyType: "organization" })
+    .mockResolvedValueOnce({
+      items: [{ workspaceId: 2, title: "Other" }],
+      pagination: { totalItems: 2, nextCursor: 2 },
+    })
+    .mockResolvedValueOnce({
+      items: [{ workspaceId: 10, title: " test ", apiKey: "workspace-key" }],
+      pagination: { totalItems: 2 },
+    })
+    .mockResolvedValueOnce({ items: [], pagination: { totalItems: 0 } })
+    .mockResolvedValueOnce({ id: 10, keyType: "workspace" });
+  await queueOnboarding("admin", "A", { key, apiKey: "organization-key" });
+  expect(providerRequest).toHaveBeenNthCalledWith(
+    3,
+    "organization-key",
+    "onboarding:A",
+    "/workspaces",
+    "GET",
+    undefined,
+    { limit: 100, startingAfter: 2 },
+  );
+  expect(db.manyreachClientspace.upsert).toHaveBeenCalledWith(
+    expect.objectContaining({
+      create: expect.objectContaining({
+        providerType: "workspace",
+        encryptedApiKey: "encrypted:workspace-key",
+      }),
+    }),
+  );
+});
+it("rejects a matching name in both account types without choosing a tenant", async () => {
+  vi.mocked(providerRequest)
+    .mockResolvedValueOnce({ id: 1, keyType: "organization" })
+    .mockResolvedValueOnce({
+      items: [{ workspaceId: 10, title: "Test", apiKey: "workspace-key" }],
+      pagination: { totalItems: 1 },
+    })
+    .mockResolvedValueOnce({
+      items: [{ clientspaceId: 10, title: "Test", apiKey: "clientspace-key" }],
+      pagination: { totalItems: 1 },
+    });
+  await expect(
+    queueOnboarding("admin", "A", { key, apiKey: "organization-key" }),
+  ).rejects.toThrow("No unique");
+  expect(db.manyreachClientspace.upsert).not.toHaveBeenCalled();
+});
+it("rejects changing the account type even when its numeric ID matches", async () => {
+  vi.mocked(db.client.findUniqueOrThrow).mockResolvedValue({
+    ...client,
+    mapping: { providerId: 10, providerType: "clientspace" },
+  } as any);
+  vi.mocked(providerRequest).mockResolvedValue({
+    id: 10,
+    keyType: "workspace",
+  });
+  await expect(
+    queueOnboarding("admin", "A", { key, apiKey: "workspace-key" }),
+  ).rejects.toThrow("different account");
+  expect(db.manyreachClientspace.upsert).not.toHaveBeenCalled();
+});
+it("rejects a lookup with missing pages before saving a connection", async () => {
+  vi.mocked(providerRequest)
+    .mockResolvedValueOnce({ id: 1, keyType: "organization" })
+    .mockResolvedValueOnce({
+      items: [{ workspaceId: 10, title: "Test", apiKey: "workspace-key" }],
+      pagination: { totalItems: 2 },
+    });
+  await expect(
+    queueOnboarding("admin", "A", { key, apiKey: "organization-key" }),
+  ).rejects.toThrow("incomplete");
   expect(db.manyreachClientspace.upsert).not.toHaveBeenCalled();
 });
 it("rejects a clientspace already assigned to another tenant", async () => {

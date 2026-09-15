@@ -8,7 +8,7 @@ Checked on 2026-09-14 and 2026-09-15 on Windows with Node.js 24.18.0.
 | MySQL migrations | Passed | Initial schema, package catalog, cancelled-job enum draft client status and onboarding result metadata applied to local MySQL |
 | TypeScript | Passed | `npm run typecheck` |
 | ESLint | Passed, no warnings | `npm run lint` |
-| Unit tests | 95 passed across 15 files | Tenant boundaries, safe responses, adapter, invitations, jobs, cron, receipts, package review gate, admin ownership/cancellation/key rotation, enrollment, branding URLs, schedule validation, preview routing/data safety, draft onboarding, agency-key Subaccount resolution and activation prerequisites; database/provider mocked |
+| Unit tests | 102 passed across 15 files | Tenant boundaries, safe responses, adapter, invitations, jobs, cron, receipts, package review gate, admin ownership/cancellation/key rotation, enrollment, branding URLs, schedule validation, preview routing/data safety, draft onboarding, agency-key Subaccount resolution and activation prerequisites; database/provider mocked |
 | Local MySQL checks | Passed | Competing job claim/cancellation has one winner; active lease excludes another caller and can be reused after release; transaction rollback removes test writes |
 | Authenticated local admin | Passed | Real Superadmin login, four persisted package cards and package editor; settings save persisted successfully |
 | Production build | Passed | `npm run build`; Next.js 16.3.5, all pages and route handlers compiled |
@@ -34,3 +34,7 @@ Local login recovery: MySQL's cold authentication failed with `ER_CANNOT_RETRIEV
 - Authenticated browser: the three-step wizard advances through active Launch/Growth/Scale to Sync & Invite. Empty-key validation checked; no test client saved. Test Company has the new key/password panel, SMTP status, assigned Growth plan, and no visible permission overrides tab or manual draft activation button.
 - Six desktop/mobile public browser smoke tests passed again. Production build and lint passed.
 - Hostinger SMTP authentication for `info@reliantoutreach.com` passed without sending an email, and the restarted app reports SMTP configured. The supplied Manyreach key was verified as agency-wide. The app now accepts that key only when exactly one Manyreach Subaccount name matches the client's company and then verifies and stores its isolated key. The saved browser password field was cleared by navigation before the updated flow could be retried, so the real client still has no Manyreach mapping. Live provider synchronization, SMTP delivery, invitation acceptance and the populated client dashboard remain unverified. Source remains local.
+
+## Workspace connection correction
+
+The supplied Swagger defines Workspace and Clientspace as separate isolated account types. Previous onboarding only supported Clientspace. Both types are now accepted directly; agency lookup scans both collections and verifies the resulting isolated key. A migration adds the account type to the unique provider identity. Tests cover direct workspace keys, paged workspace discovery, cross-type ambiguity, missing pages, type-changing replacement rejection, and workspace key rotation. Live synchronization still requires the API key to be entered in the client form.

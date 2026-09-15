@@ -89,7 +89,7 @@ export function ClientSync({
         }}
       >
         <label>
-          Manyreach clientspace API key
+          Manyreach workspace / clientspace API key
           <input
             type="password"
             autoComplete="off"
@@ -106,9 +106,9 @@ export function ClientSync({
           />
         </label>
         <p className="muted small">
-          You may use this client&apos;s isolated key. An agency key is also accepted
-          when Manyreach has exactly one Subaccount with the same name as this
-          client.
+          You may use this client&apos;s isolated key. An agency key is also
+          accepted when Manyreach has exactly one Workspace or Clientspace with
+          the same name as this client.
         </p>
         {state && !state.smtpConfigured && (
           <p className="notice">

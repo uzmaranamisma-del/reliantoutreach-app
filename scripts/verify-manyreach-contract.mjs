@@ -52,6 +52,7 @@ assert(!extra.length, `Unreviewed endpoints: ${extra.join(", ")}`);
 
 definition("AccountContext", ["keyType", "id", "title"]);
 definition("Clientspace", ["clientspaceId", "title", "apiKey"]);
+definition("Workspace", ["workspaceId", "title", "apiKey"]);
 definition("PaginationInteger", [
   "currentPage",
   "pageSize",
@@ -69,6 +70,7 @@ definition("Campaign", [
 ]);
 for (const page of [
   "ClientspacePage",
+  "WorkspacePage",
   "CampaignPage",
   "ProspectPage",
   "ListPage",

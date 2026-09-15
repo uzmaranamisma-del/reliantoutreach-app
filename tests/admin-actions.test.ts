@@ -9,6 +9,9 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 vi.mock("@/lib/manyreach/client", () => ({ providerRequest: vi.fn() }));
+vi.mock("@/lib/crypto", () => ({
+  encrypt: (value: string) => `encrypted:${value}`,
+}));
 import { db } from "@/lib/db";
 import { providerRequest } from "@/lib/manyreach/client";
 import {
@@ -67,6 +70,7 @@ it("cancels queued work atomically and erases its payload", async () => {
 it.each([
   { id: 42, keyType: "agency" },
   { id: 43, keyType: "clientspace" },
+  { id: 42, keyType: "workspace" },
 ])(
   "rejects a replacement key outside the exact clientspace: %j",
   async (account) => {
@@ -80,3 +84,15 @@ it.each([
     expect(db.manyreachClientspace.update).not.toHaveBeenCalled();
   },
 );
+it("rotates a workspace key while preserving its account scope", async () => {
+  vi.mocked(db.manyreachClientspace.findUnique).mockResolvedValue({
+    providerId: 42,
+    providerType: "workspace",
+  } as any);
+  vi.mocked(providerRequest).mockResolvedValue({
+    id: 42,
+    keyType: "workspace",
+  });
+  await rotateConnection("admin", "tenant-A", { apiKey: "test-only-key" });
+  expect(db.manyreachClientspace.update).toHaveBeenCalled();
+});
