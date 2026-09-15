@@ -1665,6 +1665,42 @@ tbody tr:hover {
 .package-card {
   padding: 24px;
 }
+.package-service-label {
+  font-size: 11px;
+  color: #55709a;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.package-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+  padding: 13px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.package-summary-grid div {
+  min-width: 0;
+}
+.package-summary-grid span,
+.package-summary-grid strong {
+  display: block;
+}
+.package-summary-grid span {
+  color: #8b97aa;
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+.package-summary-grid strong {
+  color: var(--navy);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.package-selection-meta {
+  margin-top: 10px;
+}
 .package-card > p {
   font-size: 12px;
   color: #8b97aa;
@@ -2195,6 +2231,9 @@ tbody tr:hover {
   cursor: pointer;
   font-weight: 600;
   color: var(--navy);
+}
+.package-limits-details {
+  margin-top: 16px;
 }
 .package-services h3 {
   margin: 18px 0 8px;

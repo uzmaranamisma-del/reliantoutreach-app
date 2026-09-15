@@ -140,6 +140,7 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
     if (
       sync &&
       (apiKey.trim().length < 8 ||
+        current?.serviceType !== "EMAIL" ||
         !current?.active ||
         current?.requiresLimitReview)
     ) {
@@ -225,7 +226,7 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
                 { value: "", label: "Choose a package" },
                 ...(packages.data?.items || []).map((p: any) => ({
                   value: p.id,
-                  label: `${p.name}${!p.active || p.requiresLimitReview ? " — Draft" : ""}`,
+                  label: `${p.name} · ${p.serviceType === "LINKEDIN" ? "LinkedIn service" : "Email outreach"}${!p.active || p.requiresLimitReview ? " — Inactive" : " — Active"}`,
                 })),
               ]}
             />
@@ -240,6 +241,21 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
               <p className="notice">
                 This package is not ready for activation. You can save the
                 client as a draft.
+              </p>
+            )}
+            {current && current.serviceType === "LINKEDIN" && (
+              <p className="notice">
+                LinkedIn Outreach is shown for reference and can be saved as a
+                draft, but it cannot activate an email workspace.
+              </p>
+            )}
+            {current && (
+              <p className="muted package-selection-meta">
+                ${Number(current.price || 0).toLocaleString()}/month · $
+                {Number(current.setupPrice || 0).toLocaleString()} setup
+                {current.serviceType === "LINKEDIN"
+                  ? ` · ${Number(current.initialMessages || 0).toLocaleString()} initial messages, then ${Number(current.monthlyMessages || 0).toLocaleString()}/month`
+                  : ` · ${Number(current.limits?.find((limit: any) => limit.key === "monthlyEmails")?.value || 0).toLocaleString()} emails/month`}
               </p>
             )}
           </>
@@ -375,6 +391,7 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
               disabled={
                 busy ||
                 apiKey.trim().length < 8 ||
+                current?.serviceType !== "EMAIL" ||
                 !current?.active ||
                 current?.requiresLimitReview
               }

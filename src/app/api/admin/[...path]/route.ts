@@ -50,16 +50,24 @@ export const GET = endpoint(async (request, context) => {
     return {
       items: await db.package.findMany({
         where: {
-          serviceType: "EMAIL",
           ...(url.searchParams.get("purpose") === "onboarding"
             ? {}
-            : { active: true, requiresLimitReview: false }),
+            : { serviceType: "EMAIL", active: true, requiresLimitReview: false }),
         },
         select: {
           id: true,
           name: true,
           active: true,
           requiresLimitReview: true,
+          serviceType: true,
+          price: true,
+          setupPrice: true,
+          initialMessages: true,
+          monthlyMessages: true,
+          limits: {
+            where: { key: "monthlyEmails" },
+            select: { key: true, value: true },
+          },
           features: { select: { key: true, enabled: true } },
         },
         orderBy: [{ displayOrder: "asc" }, { name: "asc" }],

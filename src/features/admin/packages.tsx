@@ -75,7 +75,9 @@ export function Packages() {
               <h2>{p.name}</h2>
               <Status value={p.active ? "Active" : "Draft"} />
             </div>
-            <p>{p.description}</p>
+            <p className="package-service-label">
+              {p.serviceType === "LINKEDIN" ? "LinkedIn managed service" : "Email outreach"}
+            </p>
             <div className="package-price">
               {new Intl.NumberFormat("en-US", {
                 style: "currency",
@@ -84,17 +86,30 @@ export function Packages() {
               }).format(Number(p.price))}
               <small>{p.billingLabel}</small>
             </div>
-            <p className="muted">{p._count.clients} assigned clients</p>
-            <p>
-              <strong>
-                {new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: p.currency || "USD",
-                  maximumFractionDigits: 0,
-                }).format(Number(p.setupPrice || 0))}
-              </strong>{" "}
-              one-time setup · {p.minimumMonths || 0}-month minimum
-            </p>
+            <div className="package-summary-grid">
+              <div>
+                <span>Setup</span>
+                <strong>
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: p.currency || "USD",
+                    maximumFractionDigits: 0,
+                  }).format(Number(p.setupPrice || 0))}
+                </strong>
+              </div>
+              <div>
+                <span>{p.serviceType === "LINKEDIN" ? "Messages" : "Emails"}</span>
+                <strong>
+                  {p.serviceType === "LINKEDIN"
+                    ? `${Number(p.initialMessages || 0).toLocaleString()} + ${Number(p.monthlyMessages || 0).toLocaleString()}/mo`
+                    : `${Number(p.monthlyEmails || 0).toLocaleString()}/mo`}
+                </strong>
+              </div>
+              <div>
+                <span>Assigned</span>
+                <strong>{p._count.clients}</strong>
+              </div>
+            </div>
             {p.requiresLimitReview && (
               <p className="notice">
                 Draft: sender, campaign, prospect, list and team limits await
@@ -108,16 +123,19 @@ export function Packages() {
                 workspace assignment is unavailable for this service.
               </p>
             )}
-            <div className="package-limits">
-              {p.limits.map((l: any) => (
-                <div key={l.key}>
-                  <span>{l.key.replace(/([A-Z])/g, " $1")}</span>
-                  <strong>
-                    {l.value === -1 ? "Unlimited" : l.value.toLocaleString()}
-                  </strong>
-                </div>
-              ))}
-            </div>
+            <details className="package-services package-limits-details">
+              <summary>Technical limits</summary>
+              <div className="package-limits">
+                {p.limits.map((l: any) => (
+                  <div key={l.key}>
+                    <span>{l.key.replace(/([A-Z])/g, " $1")}</span>
+                    <strong>
+                      {l.value === -1 ? "Unlimited" : l.value.toLocaleString()}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            </details>
             <details className="package-services">
               <summary>Included services & terms</summary>
               <h3>Setup includes</h3>
