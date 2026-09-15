@@ -194,7 +194,9 @@ export async function reply(request: Request, input: unknown) {
   const initial = await tenant(request, "inbox.reply");
   return withLease(`tenant:${initial.client.id}`, async () => {
     const ctx = await tenant(request, "inbox.reply");
-    sendingGuard(ctx);
+    // Manual replies are explicitly enabled for capped packages. The package
+    // cap still protects campaign starts, while Manyreach remains authoritative
+    // for the actual reply delivery and provider credits.
     const message = resolve(ctx.client.id, "messages", data.id);
     const p = await forClient(ctx.client.id);
     return once(ctx.client.id, data.key, async () => {
