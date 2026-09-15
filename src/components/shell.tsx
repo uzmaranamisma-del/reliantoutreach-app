@@ -1,11 +1,11 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createAuthClient } from "better-auth/react";
 import {
-  ArrowUpRight,
   LayoutDashboard,
   Send,
   Inbox,
@@ -109,10 +109,16 @@ export function Shell({
       )}
       <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
         <Link href={base} className="brand">
-          <span className="brand-mark">
-            <ArrowUpRight size={23} />
+          <span className="brand-logo-frame">
+            <Image
+              className="brand-logo"
+              src="/brand-logo.png"
+              alt={brand.productName}
+              width={2172}
+              height={724}
+              priority
+            />
           </span>
-          {brand.productName}
         </Link>
         <div className="workspace-card">
           <span className="workspace-avatar">

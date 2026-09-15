@@ -333,6 +333,24 @@ input[type="checkbox"] {
   color: var(--navy);
   margin-right: 9px;
 }
+.brand-logo-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 184px;
+  height: 46px;
+  padding: 6px 10px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  margin-right: 9px;
+}
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .auth-layout {
   min-height: 100vh;
   display: grid;
@@ -1833,6 +1851,11 @@ tbody tr:hover {
     height: 29px;
     margin-right: 7px;
   }
+  .sidebar .brand-logo-frame {
+    width: 174px;
+    height: 43px;
+    margin-right: 0;
+  }
   .main-shell {
     margin-left: 220px;
   }
@@ -1988,6 +2011,11 @@ tbody tr:hover {
   .auth-story .brand-mark {
     width: 32px;
     height: 32px;
+  }
+  .auth-story .brand-logo-frame {
+    width: 222px;
+    height: 55px;
+    margin-right: 0;
   }
   .auth-story > div {
     display: none;

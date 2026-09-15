@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, ShieldCheck, Mail, ArrowRight } from "lucide-react";
+import Image from "next/image";
+import { ShieldCheck, Mail, ArrowRight } from "lucide-react";
 import { createAuthClient } from "better-auth/react";
 import { Button } from "./ui/button";
 import { api } from "@/lib/browser-api";
@@ -82,10 +83,16 @@ export function AuthForm({
     <main className="auth-layout">
       <section className="auth-story">
         <Link href="/login" className="brand">
-          <span className="brand-mark">
-            <ArrowUpRight size={26} />
+          <span className="brand-logo-frame">
+            <Image
+              className="brand-logo"
+              src="/brand-logo.png"
+              alt="ReliantOutreach"
+              width={2172}
+              height={724}
+              priority
+            />
           </span>
-          Reliant<span>Outreach</span>
         </Link>
         <div>
           <span className="eyebrow">YOUR OUTREACH. ONE WORKSPACE.</span>
