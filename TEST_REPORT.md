@@ -27,6 +27,8 @@ Client dashboard preview: authenticated Superadmin view verified across Dashboar
 
 ## September 15: Sync & Invite verification
 
+Local login recovery: MySQL's cold authentication failed with `ER_CANNOT_RETRIEVE_RSA_KEY` after a server restart. The adapter now accepts a trusted public-key file through `DATABASE_RSA_PUBLIC_KEY`; the local environment points at this MySQL instance's public key. The startup script waits for MySQL and runs an authenticated `SELECT 1` before reporting readiness. Database verification and browser Superadmin sign-in passed; the authenticated platform overview loaded with the saved client and packages.
+
 - Unit tests cover isolated-key scope, exact-name Subaccount resolution from an agency key, cross-client mapping rejection, duplicate sync submission, five data checks before publication, provider/SMTP failure handling, owner access, invite deduplication, campaign pagination/partial-data rejection, tenant-bound status, targeted job execution and safe extended contact/tag fields. Only the resolved isolated key is encrypted and stored.
 - `ALLOW_LOCAL_DB_TEST=yes node --conditions=react-server --import tsx scripts/verify-onboarding-db.ts` passed against real local MySQL. Verified activation, snapshot/result persistence, atomic invitation queue creation, repeated-publication deduplication and MySQL JSON-path lookup. Temporary fixtures were removed; no test delivery worker was run and no email was sent.
 - Authenticated browser: the three-step wizard advances through active Launch/Growth/Scale to Sync & Invite. Empty-key validation checked; no test client saved. Test Company has the new key/password panel, SMTP status, assigned Growth plan, and no visible permission overrides tab or manual draft activation button.

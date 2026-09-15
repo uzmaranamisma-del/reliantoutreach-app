@@ -16,6 +16,12 @@ function createDb() {
       connectionLimit: 5,
       connectTimeout: 5000,
       acquireTimeout: 10000,
+      ...(process.env.DATABASE_RSA_PUBLIC_KEY
+        ? {
+            cachingRsaPublicKey: process.env.DATABASE_RSA_PUBLIC_KEY,
+            rsaPublicKey: process.env.DATABASE_RSA_PUBLIC_KEY,
+          }
+        : {}),
       ...(process.env.DATABASE_SSL === "true"
         ? { ssl: { rejectUnauthorized: true } }
         : {}),
