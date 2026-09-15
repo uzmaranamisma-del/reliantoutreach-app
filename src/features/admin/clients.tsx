@@ -12,7 +12,7 @@ import { Modal } from "@/components/ui/dialog";
 import { useLive } from "@/features/portal/hooks";
 import { api } from "@/lib/browser-api";
 import { permissions } from "@/lib/permissions";
-import { ArrowLeft, ArrowRight, Mail, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mail, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,10 +21,43 @@ export function Clients() {
   const router = useRouter();
   const [page, setPage] = useState(1),
     [search, setSearch] = useState(""),
-    [create, setCreate] = useState(false);
+    [create, setCreate] = useState(false),
+    [selectedIds, setSelectedIds] = useState<string[]>([]),
+    [deleting, setDeleting] = useState(false),
+    [deleteError, setDeleteError] = useState("");
   const q = useLive(
     `/api/admin/clients?page=${page}&search=${encodeURIComponent(search)}`,
   );
+  const rows = q.data?.items || [];
+  const allVisibleSelected =
+    rows.length > 0 && rows.every((row: any) => selectedIds.includes(row.id));
+  const toggleSelected = (id: string) =>
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  async function deleteSelected() {
+    if (!selectedIds.length || deleting) return;
+    const confirmed = window.confirm(
+      `Delete ${selectedIds.length} selected client${selectedIds.length === 1 ? "" : "s"}? This removes the local workspace and its access records.`,
+    );
+    if (!confirmed) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await api("/api/admin/clients/bulk-delete", {
+        ids: selectedIds,
+        confirm: true,
+      });
+      setSelectedIds([]);
+      await q.refetch();
+    } catch (e) {
+      setDeleteError((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
   return (
     <>
       <PageTitle
@@ -38,8 +71,41 @@ export function Clients() {
           Create client
         </Button>
       </PageTitle>
+      {deleteError && <ErrorBox error={deleteError} />}
+      <div className="selection-toolbar">
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={allVisibleSelected}
+            onChange={(event) =>
+              setSelectedIds(
+                event.target.checked
+                  ? Array.from(new Set([...selectedIds, ...rows.map((row: any) => row.id)]))
+                  : selectedIds.filter(
+                      (id) => !rows.some((row: any) => row.id === id),
+                    ),
+              )
+            }
+          />
+          Select all visible
+        </label>
+        <span className="muted small">
+          {selectedIds.length ? `${selectedIds.length} selected` : "Select clients for bulk actions"}
+        </span>
+        {selectedIds.length > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={deleting}
+            onClick={deleteSelected}
+          >
+            <Trash2 size={15} />
+            {deleting ? "Deleting…" : "Delete selected"}
+          </Button>
+        )}
+      </div>
       <DataTable
-        rows={q.data?.items || []}
+        rows={rows}
         loading={q.isLoading}
         error={q.error}
         search={search}
@@ -51,6 +117,18 @@ export function Clients() {
         total={q.data?.total}
         onPage={setPage}
         columns={[
+          {
+            key: "select",
+            label: "Select",
+            render: (r: any) => (
+              <input
+                type="checkbox"
+                aria-label={`Select ${r.company}`}
+                checked={selectedIds.includes(r.id)}
+                onChange={() => toggleSelected(r.id)}
+              />
+            ),
+          },
           {
             key: "company",
             label: "Company",

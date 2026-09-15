@@ -6,6 +6,7 @@ import {
   savePackage,
   syncPublishedPackages,
   createClient,
+  deleteClients,
   clientInput,
 } from "@/server/admin";
 import {
@@ -284,6 +285,8 @@ export const POST = endpoint(async (request, context) => {
   const data = await json(request);
   if (section === "clients" && id && action === "sync")
     return queueOnboarding(who.user.id, id, data);
+  if (section === "clients" && id === "bulk-delete")
+    return deleteClients(who.user.id, data);
   if (section === "clients" && id && action === "sync-progress") {
     const jobId = z.string().min(1).max(100).parse(data.jobId);
     const state = await onboardingStatus(id, jobId);

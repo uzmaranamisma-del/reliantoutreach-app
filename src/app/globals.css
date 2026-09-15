@@ -1768,6 +1768,23 @@ tbody tr:hover {
   font-size: 12px;
   padding: 7px 0;
 }
+.selection-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+.selection-toolbar .check {
+  margin: 0;
+  white-space: nowrap;
+}
+.selection-toolbar .button-danger {
+  margin-left: auto;
+}
 .permission-item {
   display: flex;
   gap: 9px;

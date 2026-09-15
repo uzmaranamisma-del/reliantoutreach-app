@@ -287,3 +287,60 @@ export async function createClient(actorId: string, input: unknown) {
     return { id: client.id };
   });
 }
+
+export async function deleteClients(actorId: string, input: unknown) {
+  const data = z
+    .object({
+      ids: z.array(z.string().min(1).max(100)).min(1).max(100),
+      confirm: z.literal(true),
+    })
+    .parse(input);
+  return withLease("admin:delete-clients", async () =>
+    db.$transaction(async (tx) => {
+      const clients = await tx.client.findMany({
+        where: { id: { in: data.ids } },
+        select: { id: true, company: true },
+      });
+      if (!clients.length) throw new AppError(404, "No clients found.");
+      const ids = clients.map((client) => client.id);
+      await tx.session.updateMany({
+        where: {
+          OR: [
+            { activeClientId: { in: ids } },
+            { impersonatingClientId: { in: ids } },
+          ],
+        },
+        data: {
+          activeClientId: null,
+          impersonatingClientId: null,
+          impersonationExpiresAt: null,
+        },
+      });
+      await Promise.all([
+        tx.clientMembership.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.clientPermissionOverride.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.clientLimitOverride.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.manyreachClientspace.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.invitation.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.notification.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.usageSnapshot.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.webhookEvent.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.resourceMap.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.mutationReceipt.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.backgroundJob.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.apiLog.deleteMany({ where: { clientId: { in: ids } } }),
+      ]);
+      await tx.auditLog.createMany({
+        data: clients.map((client) => ({
+          actorId,
+          clientId: client.id,
+          action: "client.deleted",
+          resourceId: client.id,
+          metadata: { company: client.company },
+        })),
+      });
+      await tx.client.deleteMany({ where: { id: { in: ids } } });
+      return { deleted: clients.map((client) => client.id) };
+    }),
+  );
+}
