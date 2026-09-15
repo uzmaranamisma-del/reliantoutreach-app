@@ -106,9 +106,9 @@ export function ClientSync({
           />
         </label>
         <p className="muted small">
-          You may use this client&apos;s isolated key. An agency key is also
-          accepted when Manyreach has exactly one Workspace or Clientspace with
-          the same name as this client.
+          You may use this client&apos;s isolated Workspace or Clientspace key.
+          An agency key searches both account types and requires one exact name
+          match for this client.
         </p>
         {state && !state.smtpConfigured && (
           <p className="notice">

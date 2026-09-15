@@ -291,6 +291,35 @@ it("verifies every data collection before activation or invitation", async () =>
     }),
   );
 });
+it("accepts a final campaign page whose provider cursor remains present", async () => {
+  const payload: any = {};
+  request.mockResolvedValueOnce({
+    items: [],
+    pagination: { totalItems: 0, nextCursor: 123 },
+  });
+  expect(await syncDataStage("A", payload)).toBe(false);
+  expect(payload.stage).toBe(1);
+  expect(payload.cursor).toBeUndefined();
+});
+it("accepts a full campaign page even when Manyreach includes a next cursor", async () => {
+  const payload: any = {};
+  request.mockResolvedValueOnce({
+    items: [
+      {
+        sentCount: 1,
+        replyCount: 0,
+        openCount: 0,
+        clickCount: 0,
+        bounceCount: 0,
+        interestedCount: 0,
+      },
+    ],
+    pagination: { totalItems: 1, nextCursor: 123 },
+  });
+  expect(await syncDataStage("A", payload)).toBe(false);
+  expect(payload.stage).toBe(1);
+  expect(payload.cursor).toBeUndefined();
+});
 it("never activates or invites after a provider failure", async () => {
   request.mockRejectedValue(new Error("unavailable"));
   await expect(onboardingStage(job, {})).rejects.toThrow("unavailable");

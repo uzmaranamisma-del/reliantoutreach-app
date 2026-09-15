@@ -60,13 +60,16 @@ export async function syncDataStage(clientId: string, payload: any) {
       }
     }
     const next = page.pagination.nextCursor;
-    if (next !== undefined && next !== null && next !== "") {
+    // Some Manyreach responses keep a cursor on the final page. Once the
+    // reported total has been scanned, that cursor is no longer actionable.
+    if (
+      next !== undefined &&
+      next !== null &&
+      next !== "" &&
+      payload.scanned < page.pagination.totalItems
+    ) {
       payload.seenCursors ??= [];
-      if (
-        !page.items.length ||
-        payload.seenCursors.includes(String(next)) ||
-        payload.scanned >= page.pagination.totalItems
-      )
+      if (!page.items.length || payload.seenCursors.includes(String(next)))
         throw new AppError(
           502,
           "The campaign pages did not advance consistently. Retry synchronization.",
