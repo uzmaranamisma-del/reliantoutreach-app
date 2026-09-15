@@ -166,31 +166,52 @@ export function CampaignBuilder({ onDone }: { onDone: (id: string) => void }) {
             ) : senders.error ? (
               <ErrorBox error={senders.error} />
             ) : (
-              senders.data?.items.map((s: any) => (
-                <label className="sender-option" key={s.email}>
-                  <input
-                    type="checkbox"
-                    checked={data.fromEmails.includes(s.email)}
-                    onChange={(e) =>
-                      setData({
-                        ...data,
-                        fromEmails: e.target.checked
-                          ? [...data.fromEmails, s.email]
-                          : data.fromEmails.filter((v) => v !== s.email),
-                      })
-                    }
-                  />
-                  <Mail size={18} />
-                  <span>
-                    {s.email}
-                    <small>
-                      {s.disconnected
-                        ? "Connection needs attention"
-                        : `${s.dailyLimit} emails per day`}
-                    </small>
-                  </span>
-                </label>
-              ))
+              <>
+                {!!senders.data?.items.length && (
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={senders.data.items.every((s: any) =>
+                        data.fromEmails.includes(s.email),
+                      )}
+                      onChange={(e) =>
+                        setData({
+                          ...data,
+                          fromEmails: e.target.checked
+                            ? senders.data.items.map((s: any) => s.email)
+                            : [],
+                        })
+                      }
+                    />
+                    Select all senders
+                  </label>
+                )}
+                {senders.data?.items.map((s: any) => (
+                  <label className="sender-option" key={s.email}>
+                    <input
+                      type="checkbox"
+                      checked={data.fromEmails.includes(s.email)}
+                      onChange={(e) =>
+                        setData({
+                          ...data,
+                          fromEmails: e.target.checked
+                            ? [...data.fromEmails, s.email]
+                            : data.fromEmails.filter((v) => v !== s.email),
+                        })
+                      }
+                    />
+                    <Mail size={18} />
+                    <span>
+                      {s.email}
+                      <small>
+                        {s.disconnected
+                          ? "Connection needs attention"
+                          : `${s.dailyLimit} emails per day`}
+                      </small>
+                    </span>
+                  </label>
+                ))}
+              </>
             )}
             {senders.data?.pagination.totalItems > 100 && (
               <p className="notice">

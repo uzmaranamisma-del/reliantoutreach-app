@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
 import { useLive } from "@/features/portal/hooks";
 import { api } from "@/lib/browser-api";
+import { permissions } from "@/lib/permissions";
 import { ArrowLeft, ArrowRight, Mail, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -129,8 +130,9 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
     country: "",
     timezone: "UTC",
     packageId: "",
+    permissions: permissions.map((key) => ({ key, enabled: true })),
   });
-  const labels = ["Client details", "Package", "Sync & invite"];
+  const labels = ["Client details", "Package", "Permissions", "Sync & invite"];
   const current = packages.data?.items.find(
     (p: any) => p.id === form.packageId,
   );
@@ -244,6 +246,53 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
         )}
         {step === 2 && (
           <>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={form.permissions.length === permissions.length}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    permissions: e.target.checked
+                      ? permissions.map((key) => ({ key, enabled: true }))
+                      : [],
+                  })
+                }
+              />
+              Select all permissions
+            </label>
+            <div className="permission-grid">
+              {permissions.map((key) => (
+                <label className="check" key={key}>
+                  <input
+                    type="checkbox"
+                    checked={form.permissions.some(
+                      (item: any) => item.key === key && item.enabled,
+                    )}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        permissions: e.target.checked
+                          ? [
+                              ...form.permissions.filter(
+                                (item: any) => item.key !== key,
+                              ),
+                              { key, enabled: true },
+                            ]
+                          : form.permissions.filter(
+                              (item: any) => item.key !== key,
+                            ),
+                      })
+                    }
+                  />
+                  {key}
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+        {step === 3 && (
+          <>
             <div className="plan-banner">
               <div>
                 <h3>{form.company}</h3>
@@ -292,7 +341,7 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
           <ArrowLeft size={15} />
           Back
         </Button>
-        {step < 2 ? (
+        {step < 3 ? (
           <Button
             onClick={() => {
               setError("");
@@ -306,7 +355,8 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
                     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) &&
                     form.country.trim().length >= 2
                   )
-                : !current || packages.isLoading || !!packages.error
+                : step === 1 &&
+                    (!current || packages.isLoading || !!packages.error)
             }
           >
             Continue
