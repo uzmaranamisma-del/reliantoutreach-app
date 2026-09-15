@@ -109,9 +109,12 @@ export const clientInput = z.object({
   clientspaceId: z.number().int().positive().optional(),
   sendNow: z.boolean().default(true),
 });
+const clientPermissions = z
+  .array(z.object({ key: z.enum(permissions), enabled: z.boolean() }))
+  .default([]);
 export async function createClient(actorId: string, input: unknown) {
   const data = clientInput
-    .extend({ saveAsDraft: z.boolean().default(false) })
+    .extend({ saveAsDraft: z.boolean().default(false), permissions: clientPermissions })
     .parse(input);
   if (data.saveAsDraft) {
     return withLease("admin:create-client", async () => {
@@ -124,7 +127,13 @@ export async function createClient(actorId: string, input: unknown) {
         .parse(data);
       return db.$transaction(async (tx) => {
         const client = await tx.client.create({
-          data: { ...fields, status: "DRAFT" },
+          data: {
+            ...fields,
+            status: "DRAFT",
+            permissions: data.permissions.length
+              ? { create: data.permissions }
+              : undefined,
+          },
         });
         await tx.auditLog.create({
           data: {
@@ -195,6 +204,9 @@ export async function createClient(actorId: string, input: unknown) {
     const client = await db.client.create({
       data: {
         ...fields,
+        permissions: data.permissions.length
+          ? { create: data.permissions }
+          : undefined,
         mapping: {
           create: {
             providerId: space.clientspaceId,
