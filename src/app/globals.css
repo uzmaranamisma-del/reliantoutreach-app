@@ -1413,6 +1413,7 @@ tbody tr:hover {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  background: #f4f7fb;
 }
 .conversation-detail > .empty-state {
   margin: auto;
@@ -1420,6 +1421,7 @@ tbody tr:hover {
 .conversation-head {
   padding: 24px;
   border-bottom: 1px solid var(--border);
+  background: #fff;
 }
 .conversation-head h2 {
   font-size: 16px;
@@ -1431,24 +1433,45 @@ tbody tr:hover {
   margin: 7px 0 0;
 }
 .thread-messages {
-  padding: 20px 24px;
-  max-height: 450px;
+  padding: 18px 24px 26px;
+  max-height: 500px;
   overflow-y: auto;
   flex: 1;
+  scroll-behavior: smooth;
 }
 .message {
-  padding: 19px 0;
-  border-bottom: 1px solid var(--border);
+  display: flex;
+  padding: 5px 0;
+  border: 0;
 }
-.message > div:first-child {
+.message.incoming {
+  justify-content: flex-start;
+}
+.message.outgoing {
+  justify-content: flex-end;
+}
+.message-bubble {
+  max-width: min(78%, 620px);
+  padding: 10px 13px 9px;
+  border-radius: 14px 14px 14px 4px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(40, 58, 87, 0.08);
+}
+.message.outgoing .message-bubble {
+  border-radius: 14px 14px 4px 14px;
+  background: #dceaff;
+}
+.message-meta {
   display: flex;
   justify-content: space-between;
   gap: 15px;
-  margin-bottom: 15px;
+  align-items: baseline;
+  margin-bottom: 5px;
   flex-wrap: wrap;
 }
 .message strong {
-  font-size: 12px;
+  font-size: 10px;
+  color: #516987;
 }
 .message small {
   font-size: 10px;
@@ -1456,17 +1479,26 @@ tbody tr:hover {
 }
 .message .email-content {
   font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 .reply-composer {
-  padding: 20px;
+  padding: 15px 20px 18px;
   border-top: 1px solid var(--border);
   margin-top: auto;
+  background: #fff;
 }
 .reply-composer label {
   font-size: 11px;
+  display: block;
+  margin-bottom: 8px;
 }
 .reply-composer textarea {
   font-size: 13px;
+  min-height: 76px;
+  resize: vertical;
+  border-radius: 12px;
+  background: #f7f9fc;
 }
 .reply-composer .form-actions {
   border: 0;

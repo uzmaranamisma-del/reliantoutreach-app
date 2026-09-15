@@ -194,15 +194,25 @@ export function Inbox() {
                   ? history.data.items
                   : [selected]
                 ).map((m: any) => (
-                  <article className="message" key={m.id}>
-                    <div>
-                      <strong>{m.fromEmail}</strong>
-                      <small>{new Date(m.createdAt).toLocaleString()}</small>
+                  <article
+                    className={`message ${m.fromEmail?.toLowerCase() === selected.fromEmail?.toLowerCase() ? "incoming" : "outgoing"}`}
+                    key={m.id}
+                  >
+                    <div className="message-bubble">
+                      <div className="message-meta">
+                        <strong>
+                          {m.fromEmail?.toLowerCase() ===
+                          selected.fromEmail?.toLowerCase()
+                            ? m.fromEmail
+                            : "You"}
+                        </strong>
+                        <small>{new Date(m.createdAt).toLocaleString()}</small>
+                      </div>
+                      <div
+                        className="email-content"
+                        dangerouslySetInnerHTML={{ __html: m.body || "" }}
+                      />
                     </div>
-                    <div
-                      className="email-content"
-                      dangerouslySetInnerHTML={{ __html: m.body || "" }}
-                    />
                   </article>
                 ))}
               </div>
@@ -216,8 +226,14 @@ export function Inbox() {
                       setBody(e.target.value);
                       setReplyKey(crypto.randomUUID());
                     }}
+                    onKeyDown={(e) => {
+                      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                        e.preventDefault();
+                        if (body.trim() && !busy) setConfirm(true);
+                      }
+                    }}
                     rows={5}
-                    placeholder="Write your reply…"
+                    placeholder="Write a message… (Ctrl+Enter to send)"
                   />
                   {error && <ErrorBox error={error} />}
                   <div className="form-actions">
