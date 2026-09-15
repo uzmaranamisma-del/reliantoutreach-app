@@ -323,6 +323,8 @@ export async function deleteClients(actorId: string, input: unknown) {
         tx.manyreachClientspace.deleteMany({ where: { clientId: { in: ids } } }),
         tx.invitation.deleteMany({ where: { clientId: { in: ids } } }),
         tx.notification.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.conversationMeta.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.campaignTemplate.deleteMany({ where: { clientId: { in: ids } } }),
         tx.usageSnapshot.deleteMany({ where: { clientId: { in: ids } } }),
         tx.webhookEvent.deleteMany({ where: { clientId: { in: ids } } }),
         tx.resourceMap.deleteMany({ where: { clientId: { in: ids } } }),
@@ -341,6 +343,36 @@ export async function deleteClients(actorId: string, input: unknown) {
       });
       await tx.client.deleteMany({ where: { id: { in: ids } } });
       return { deleted: clients.map((client) => client.id) };
+    }),
+  );
+}
+
+export async function bulkClientStatus(actorId: string, input: unknown) {
+  const data = z
+    .object({
+      ids: z.array(z.string().min(1).max(100)).min(1).max(100),
+      status: z.enum(["ACTIVE", "SUSPENDED"]),
+      confirm: z.literal(true),
+    })
+    .parse(input);
+  return withLease("admin:client-status", async () =>
+    db.$transaction(async (tx) => {
+      const clients = await tx.client.findMany({
+        where: { id: { in: data.ids }, status: { in: ["ACTIVE", "SUSPENDED"] } },
+        select: { id: true },
+      });
+      const ids = clients.map((client) => client.id);
+      if (!ids.length) throw new AppError(404, "No eligible clients found.");
+      await tx.client.updateMany({ where: { id: { in: ids } }, data: { status: data.status } });
+      await tx.auditLog.createMany({
+        data: ids.map((clientId) => ({
+          actorId,
+          clientId,
+          action: data.status === "ACTIVE" ? "client.reactivated" : "client.suspended",
+          resourceId: clientId,
+        })),
+      });
+      return { updated: ids };
     }),
   );
 }

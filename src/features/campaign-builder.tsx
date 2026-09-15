@@ -52,6 +52,12 @@ export function CampaignBuilder({ onDone }: { onDone: (id: string) => void }) {
     queryKey: ["builder-senders"],
     queryFn: () => api("/api/portal/senders?limit=100"),
   });
+  const templates = useQuery({
+    queryKey: ["campaign-templates"],
+    queryFn: () => api("/api/portal/templates"),
+  });
+  const [templateName, setTemplateName] = useState("");
+  const [templateBusy, setTemplateBusy] = useState(false);
   async function save() {
     setBusy(true);
     setError("");
@@ -224,6 +230,29 @@ export function CampaignBuilder({ onDone }: { onDone: (id: string) => void }) {
         {step === 2 && (
           <>
             <Field
+              name="saved-template"
+              label="Use a saved template"
+              value=""
+              onChange={(value) => {
+                const template = templates.data?.items?.find(
+                  (item: any) => item.id === value,
+                );
+                if (template)
+                  setData({
+                    ...data,
+                    subject: template.subject,
+                    body: template.body,
+                  });
+              }}
+              options={[
+                { value: "", label: "Start from scratch" },
+                ...(templates.data?.items || []).map((item: any) => ({
+                  value: item.id,
+                  label: item.name,
+                })),
+              ]}
+            />
+            <Field
               name="subject"
               label="Subject"
               value={data.subject}
@@ -243,6 +272,37 @@ export function CampaignBuilder({ onDone }: { onDone: (id: string) => void }) {
               <code>{"{{LAST_NAME}}"}</code> <code>{"{{COMPANY}}"}</code>. Keep
               an unsubscribe option in your email.
             </p>
+            <div className="template-save-row">
+              <input
+                value={templateName}
+                onChange={(event) => setTemplateName(event.target.value)}
+                placeholder="Template name"
+                aria-label="Template name"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={templateBusy || !templateName.trim() || !data.subject.trim() || !data.body.trim()}
+                onClick={async () => {
+                  setTemplateBusy(true);
+                  try {
+                    await api("/api/portal/templates", {
+                      name: templateName.trim(),
+                      subject: data.subject,
+                      body: data.body,
+                    });
+                    await templates.refetch();
+                    setTemplateName("");
+                  } catch (e) {
+                    setError((e as Error).message);
+                  } finally {
+                    setTemplateBusy(false);
+                  }
+                }}
+              >
+                {templateBusy ? "Saving…" : "Save as template"}
+              </Button>
+            </div>
           </>
         )}
         {step === 3 && (

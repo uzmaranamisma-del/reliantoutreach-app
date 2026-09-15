@@ -58,6 +58,26 @@ export function Clients() {
       setDeleting(false);
     }
   }
+  async function updateSelectedStatus(status: "ACTIVE" | "SUSPENDED") {
+    if (!selectedIds.length || deleting) return;
+    const label = status === "ACTIVE" ? "reactivate" : "suspend";
+    if (!window.confirm(`${label[0].toUpperCase() + label.slice(1)} ${selectedIds.length} selected client${selectedIds.length === 1 ? "" : "s"}?`)) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await api("/api/admin/clients/bulk-status", {
+        ids: selectedIds,
+        status,
+        confirm: true,
+      });
+      setSelectedIds([]);
+      await q.refetch();
+    } catch (e) {
+      setDeleteError((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
   return (
     <>
       <PageTitle
@@ -93,15 +113,18 @@ export function Clients() {
           {selectedIds.length ? `${selectedIds.length} selected` : "Select clients for bulk actions"}
         </span>
         {selectedIds.length > 0 && (
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={deleting}
-            onClick={deleteSelected}
-          >
-            <Trash2 size={15} />
-            {deleting ? "Deleting…" : "Delete selected"}
-          </Button>
+          <>
+            <Button size="sm" variant="outline" disabled={deleting} onClick={() => updateSelectedStatus("ACTIVE")}>
+              Reactivate
+            </Button>
+            <Button size="sm" variant="outline" disabled={deleting} onClick={() => updateSelectedStatus("SUSPENDED")}>
+              Suspend
+            </Button>
+            <Button variant="destructive" size="sm" disabled={deleting} onClick={deleteSelected}>
+              <Trash2 size={15} />
+              {deleting ? "Working…" : "Delete selected"}
+            </Button>
+          </>
         )}
       </div>
       <DataTable

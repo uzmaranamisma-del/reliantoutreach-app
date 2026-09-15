@@ -36,13 +36,13 @@ it("rejects duplicate limits and invalid negative capacity", () => {
     }).success,
   ).toBe(false);
 });
-it("activates email plans with owner-approved technical limits and unchanged commercial capacities", () => {
+it("activates website plans with owner-approved technical limits and published commercial capacities", () => {
   expect(publishedPackages.map((p) => [p.name, p.price, p.setupPrice])).toEqual(
     [
-      ["Launch", 500, 1500],
-      ["Growth", 1000, 2500],
-      ["Scale", 1500, 4000],
-      ["LinkedIn Outreach", 2500, 1500],
+      ["Launch", 500, 558],
+      ["Growth", 1000, 930],
+      ["Scale", 1500, 1488],
+      ["LinkedIn Outreach", 2500, 558],
     ],
   );
   expect(

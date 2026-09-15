@@ -73,6 +73,12 @@ export function Shell({
     queryFn: () => api("/api/portal/context"),
     enabled: !admin && !preview,
   });
+  const { data: notificationSummary } = useQuery({
+    queryKey: ["notification-summary"],
+    queryFn: () => api("/api/portal/notifications?page=1"),
+    enabled: !admin && !preview,
+    refetchInterval: 30000,
+  });
   const ctx = preview || liveContext;
   const base = preview
     ? `/admin/client-preview/${preview.id}`
@@ -152,6 +158,13 @@ export function Shell({
                 <Icon size={19} />
                 {label}
                 {label === "Inbox" && <span className="nav-accent" />}
+                {label === "Notifications" && notificationSummary?.unread > 0 && (
+                  <span className="nav-badge">
+                    {notificationSummary.unread > 99
+                      ? "99+"
+                      : notificationSummary.unread}
+                  </span>
+                )}
               </Link>
             ))}
         </nav>

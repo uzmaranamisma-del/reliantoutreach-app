@@ -7,6 +7,7 @@ import {
   syncPublishedPackages,
   createClient,
   deleteClients,
+  bulkClientStatus,
   clientInput,
 } from "@/server/admin";
 import {
@@ -51,6 +52,7 @@ export const GET = endpoint(async (request, context) => {
     return {
       items: await db.package.findMany({
         where: {
+          serviceType: "EMAIL",
           ...(url.searchParams.get("purpose") === "onboarding"
             ? {}
             : { serviceType: "EMAIL", active: true, requiresLimitReview: false }),
@@ -287,6 +289,8 @@ export const POST = endpoint(async (request, context) => {
     return queueOnboarding(who.user.id, id, data);
   if (section === "clients" && id === "bulk-delete")
     return deleteClients(who.user.id, data);
+  if (section === "clients" && id === "bulk-status")
+    return bulkClientStatus(who.user.id, data);
   if (section === "clients" && id && action === "sync-progress") {
     const jobId = z.string().min(1).max(100).parse(data.jobId);
     const state = await onboardingStatus(id, jobId);

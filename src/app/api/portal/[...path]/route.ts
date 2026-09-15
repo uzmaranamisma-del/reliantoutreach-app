@@ -48,6 +48,21 @@ export const GET = endpoint(async (request, context) => {
   if (section === "inbox") {
     const ctx = await tenant(request, "inbox.view");
     if (id === "thread") return thread(ctx, q.email, q.cursor);
+    if (id === "meta") {
+      const email = z.email().parse(q.email).toLowerCase();
+      const meta = await db.conversationMeta.findUnique({
+        where: { clientId_fromEmail: { clientId: ctx.client.id, fromEmail: email } },
+      });
+      const members = await db.clientMembership.findMany({
+        where: { clientId: ctx.client.id, disabled: false },
+        select: { userId: true, user: { select: { name: true, email: true } } },
+        orderBy: { createdAt: "asc" },
+      });
+      return {
+        meta: meta || { fromEmail: email, status: "OPEN", tags: [], notes: "", assigneeId: null },
+        members,
+      };
+    }
     return list(ctx, "messages", q);
   }
   if (section === "context") {
@@ -96,6 +111,15 @@ export const GET = endpoint(async (request, context) => {
     });
     return { items };
   }
+  if (section === "templates") {
+    const ctx = await tenant(request, "campaigns.create");
+    return {
+      items: await db.campaignTemplate.findMany({
+        where: { clientId: ctx.client.id },
+        orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
+      }),
+    };
+  }
   if (section === "notifications") {
     const page = z.coerce
       .number()
@@ -104,7 +128,7 @@ export const GET = endpoint(async (request, context) => {
       .max(100000)
       .parse(q.page || 1);
     const where = { clientId: ctx.client.id };
-    const [items, total] = await Promise.all([
+    const [items, total, unread] = await Promise.all([
       db.notification.findMany({
         where,
         take: 25,
@@ -112,8 +136,9 @@ export const GET = endpoint(async (request, context) => {
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       }),
       db.notification.count({ where }),
+      db.notification.count({ where: { ...where, readAt: null } }),
     ]);
-    return { items, total };
+    return { items, total, unread };
   }
   if (section === "overview") {
     const snapshot = await db.usageSnapshot.findUnique({
@@ -202,6 +227,31 @@ export const POST = endpoint(async (request, context) => {
   const [section, id, action] = path;
   const input = await json(request, section === "imports" ? 3_000_000 : 128000);
   if (section === "enrollments") return queueEnrollment(request, input);
+  if (section === "templates") {
+    const ctx = await tenant(request, "campaigns.create");
+    const templateInput = z
+      .object({
+        action: z.enum(["save", "delete"]).default("save"),
+        id: z.string().min(1).optional(),
+        name: z.string().min(1).max(120),
+        subject: z.string().min(1).max(255).optional(),
+        body: z.string().min(1).max(50000).optional(),
+      })
+      .parse(input);
+    if (templateInput.action === "delete") {
+      if (!templateInput.id) throw new AppError(422, "Template id is required.");
+      await db.campaignTemplate.deleteMany({ where: { id: templateInput.id, clientId: ctx.client.id } });
+      return { ok: true };
+    }
+    if (!templateInput.subject || !templateInput.body)
+      throw new AppError(422, "Template subject and body are required.");
+    const item = await db.campaignTemplate.upsert({
+      where: { clientId_name: { clientId: ctx.client.id, name: templateInput.name } },
+      create: { clientId: ctx.client.id, name: templateInput.name, subject: templateInput.subject, body: templateInput.body },
+      update: { subject: templateInput.subject, body: templateInput.body },
+    });
+    return { item };
+  }
   if (section === "notifications" && id) {
     const ctx = await tenant(request);
     const changed = await db.notification.updateMany({
@@ -210,6 +260,31 @@ export const POST = endpoint(async (request, context) => {
     });
     if (!changed.count) throw new AppError(404, "Notification not found.");
     return { ok: true };
+  }
+  if (section === "inbox" && id === "meta") {
+    const ctx = await tenant(request, "inbox.view");
+    const metaInput = z
+      .object({
+        email: z.email(),
+        status: z.enum(["OPEN", "NEEDS_REPLY", "MEETING", "NOT_INTERESTED", "CLOSED"]),
+        tags: z.array(z.string().min(1).max(40)).max(10),
+        notes: z.string().max(5000),
+        assigneeId: z.string().min(1).nullable(),
+      })
+      .parse(input);
+    const email = metaInput.email.toLowerCase();
+    if (metaInput.assigneeId) {
+      const member = await db.clientMembership.findFirst({
+        where: { clientId: ctx.client.id, userId: metaInput.assigneeId, disabled: false },
+      });
+      if (!member) throw new AppError(422, "Choose a member of this workspace.");
+    }
+    const meta = await db.conversationMeta.upsert({
+      where: { clientId_fromEmail: { clientId: ctx.client.id, fromEmail: email } },
+      create: { clientId: ctx.client.id, fromEmail: email, status: metaInput.status, tags: metaInput.tags, notes: metaInput.notes, assigneeId: metaInput.assigneeId },
+      update: { status: metaInput.status, tags: metaInput.tags, notes: metaInput.notes, assigneeId: metaInput.assigneeId },
+    });
+    return { meta };
   }
   if (resources.includes(section)) {
     if (section === "campaigns" && id && action === "sequences")

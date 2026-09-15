@@ -2,6 +2,7 @@
 import {
   Empty,
   ErrorBox,
+  Field,
   Loading,
   PageTitle,
   Refresh,
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
 import { api } from "@/lib/browser-api";
 import { useQuery } from "@tanstack/react-query";
-import { MessageSquare, Send } from "lucide-react";
+import { Check, MessageSquare, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useContext, useLive } from "./hooks";
 
@@ -26,7 +27,15 @@ export function Inbox() {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [confirm, setConfirm] = useState(false),
-    threadRef = useRef<HTMLDivElement>(null);
+    threadRef = useRef<HTMLDivElement>(null),
+    [metaForm, setMetaForm] = useState({
+      status: "OPEN",
+      tags: "",
+      notes: "",
+      assigneeId: "",
+    }),
+    [metaBusy, setMetaBusy] = useState(false),
+    [metaError, setMetaError] = useState("");
   const q = useLive(
     `/api/portal/inbox?page=${page}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}${filter ? `&status=${filter}` : ""}`,
     ctx?.poll.inbox || 15,
@@ -42,6 +51,14 @@ export function Inbox() {
       ? false
       : Math.max(10, ctx?.poll.inbox || 15) * 1000,
   });
+  const meta = useQuery({
+    queryKey: ["conversation-meta", selected?.fromEmail],
+    queryFn: () =>
+      api(
+        `/api/portal/inbox/meta?email=${encodeURIComponent(selected.fromEmail)}`,
+      ),
+    enabled: !!selected,
+  });
   const threadMessages = (history.data?.items?.length
     ? history.data.items
     : selected
@@ -55,6 +72,39 @@ export function Inbox() {
     if (!historyCursor && threadRef.current)
       threadRef.current.scrollTop = threadRef.current.scrollHeight;
   }, [selected?.fromEmail, history.dataUpdatedAt, historyCursor]);
+  useEffect(() => {
+    const record = meta.data?.meta;
+    if (!record) return;
+    setMetaForm({
+      status: record.status || "OPEN",
+      tags: Array.isArray(record.tags) ? record.tags.join(", ") : "",
+      notes: record.notes || "",
+      assigneeId: record.assigneeId || "",
+    });
+    setMetaError("");
+  }, [meta.data]);
+  async function saveMeta() {
+    if (!selected) return;
+    setMetaBusy(true);
+    setMetaError("");
+    try {
+      await api("/api/portal/inbox/meta", {
+        email: selected.fromEmail,
+        status: metaForm.status,
+        tags: metaForm.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+        notes: metaForm.notes,
+        assigneeId: metaForm.assigneeId || null,
+      });
+      await meta.refetch();
+    } catch (e) {
+      setMetaError((e as Error).message);
+    } finally {
+      setMetaBusy(false);
+    }
+  }
   return (
     <>
       <PageTitle
@@ -182,6 +232,69 @@ export function Inbox() {
               <div className="conversation-head">
                 <h2>{selected.subject}</h2>
                 <p>{selected.fromEmail}</p>
+                <div className="conversation-controls">
+                  <Field
+                    name="conversation-status"
+                    label="Status"
+                    value={metaForm.status}
+                    onChange={(value) =>
+                      setMetaForm({ ...metaForm, status: value })
+                    }
+                    options={[
+                      { value: "OPEN", label: "Open" },
+                      { value: "NEEDS_REPLY", label: "Needs reply" },
+                      { value: "MEETING", label: "Meeting" },
+                      { value: "NOT_INTERESTED", label: "Not interested" },
+                      { value: "CLOSED", label: "Closed" },
+                    ]}
+                  />
+                  <Field
+                    name="conversation-assignee"
+                    label="Assigned to"
+                    value={metaForm.assigneeId}
+                    onChange={(value) =>
+                      setMetaForm({ ...metaForm, assigneeId: value })
+                    }
+                    options={[
+                      { value: "", label: "Unassigned" },
+                      ...(meta.data?.members || []).map((member: any) => ({
+                        value: member.userId,
+                        label: `${member.user.name} · ${member.user.email}`,
+                      })),
+                    ]}
+                  />
+                  <label>
+                    Tags
+                    <input
+                      value={metaForm.tags}
+                      onChange={(event) =>
+                        setMetaForm({ ...metaForm, tags: event.target.value })
+                      }
+                      placeholder="Hot, Follow-up"
+                    />
+                  </label>
+                  <label className="conversation-notes">
+                    Internal notes
+                    <textarea
+                      value={metaForm.notes}
+                      onChange={(event) =>
+                        setMetaForm({ ...metaForm, notes: event.target.value })
+                      }
+                      rows={2}
+                      placeholder="Notes for your team"
+                    />
+                  </label>
+                  {metaError && <ErrorBox error={metaError} />}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={metaBusy || meta.isLoading}
+                    onClick={saveMeta}
+                  >
+                    <Check size={14} />
+                    {metaBusy ? "Saving…" : "Save conversation"}
+                  </Button>
+                </div>
               </div>
               <div className="thread-messages" ref={threadRef}>
                 <div className="form-actions">

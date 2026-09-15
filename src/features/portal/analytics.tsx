@@ -38,6 +38,12 @@ export function Analytics({ campaign }: { campaign?: string }) {
       (a: number, b: number) => a + (Number(b) || 0),
       0,
     );
+  const sentTotal = total("sent"),
+    replyTotal = total("replies"),
+    openTotal = total("opens"),
+    clickTotal = total("clicks"),
+    rate = (value: number) =>
+      sentTotal ? `${((value / sentTotal) * 100).toFixed(1)}%` : "—";
   return (
     <>
       {!campaign && (
@@ -125,15 +131,15 @@ export function Analytics({ campaign }: { campaign?: string }) {
         <>
           <div className="metric-grid">
             {[
-              ["Sent", "sent"],
-              ["Replies", "replies"],
-              ["Opens", "opens"],
-              ["Clicks", "clicks"],
-            ].map(([label, key]) => (
-              <div className="metric-card" key={key}>
+              ["Sent", sentTotal.toLocaleString(), "Selected date range"],
+              ["Replies", replyTotal.toLocaleString(), `${rate(replyTotal)} reply rate`],
+              ["Opens", openTotal.toLocaleString(), `${rate(openTotal)} open rate`],
+              ["Clicks", clickTotal.toLocaleString(), `${rate(clickTotal)} click rate`],
+            ].map(([label, value, note]) => (
+              <div className="metric-card" key={label}>
                 <span>{label}</span>
-                <strong>{total(key).toLocaleString()}</strong>
-                <small>Selected date range</small>
+                <strong>{value}</strong>
+                <small>{note}</small>
               </div>
             ))}
           </div>

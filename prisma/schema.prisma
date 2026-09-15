@@ -105,6 +105,8 @@ model Client {
   permissions ClientPermissionOverride[]
   limits ClientLimitOverride[]
   invitations Invitation[]
+  conversationMeta ConversationMeta[]
+  campaignTemplates CampaignTemplate[]
   @@index([status, createdAt])
   @@index([packageId])
 }
@@ -233,6 +235,32 @@ model Notification {
   readAt DateTime?
   createdAt DateTime @default(now())
   @@index([clientId,createdAt])
+}
+model ConversationMeta {
+  id String @id @default(cuid())
+  clientId String
+  fromEmail String
+  status String @default("OPEN")
+  tags Json?
+  notes String? @db.Text
+  assigneeId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([clientId, fromEmail])
+  @@index([clientId, updatedAt])
+}
+model CampaignTemplate {
+  id String @id @default(cuid())
+  clientId String
+  name String
+  subject String
+  body String @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([clientId, name])
+  @@index([clientId, updatedAt])
 }
 model UsageSnapshot {
   id String @id @default(cuid())
