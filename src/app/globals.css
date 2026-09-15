@@ -1523,6 +1523,29 @@ tbody tr:hover {
   margin: 0;
   padding-top: 10px;
 }
+.pwa-actions {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 25px rgba(25, 48, 86, 0.14);
+}
+.pwa-actions button {
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
 .analytics-controls {
   display: flex;
   align-items: flex-end;

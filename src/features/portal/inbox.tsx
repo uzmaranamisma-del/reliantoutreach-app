@@ -11,7 +11,7 @@ import { Modal } from "@/components/ui/dialog";
 import { api } from "@/lib/browser-api";
 import { useQuery } from "@tanstack/react-query";
 import { MessageSquare, Send } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useContext, useLive } from "./hooks";
 
 export function Inbox() {
@@ -25,7 +25,8 @@ export function Inbox() {
     [replyKey, setReplyKey] = useState(() => crypto.randomUUID()),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [confirm, setConfirm] = useState(false);
+    [confirm, setConfirm] = useState(false),
+    threadRef = useRef<HTMLDivElement>(null);
   const q = useLive(
     `/api/portal/inbox?page=${page}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}${filter ? `&status=${filter}` : ""}`,
     ctx?.poll.inbox || 15,
@@ -41,6 +42,19 @@ export function Inbox() {
       ? false
       : Math.max(10, ctx?.poll.inbox || 15) * 1000,
   });
+  const threadMessages = (history.data?.items?.length
+    ? history.data.items
+    : selected
+      ? [selected]
+      : []
+  ).slice().sort(
+    (a: any, b: any) =>
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+  useEffect(() => {
+    if (!historyCursor && threadRef.current)
+      threadRef.current.scrollTop = threadRef.current.scrollHeight;
+  }, [selected?.fromEmail, history.dataUpdatedAt, historyCursor]);
   return (
     <>
       <PageTitle
@@ -98,7 +112,13 @@ export function Inbox() {
           ) : q.isLoading ? (
             <Loading />
           ) : q.data?.items.length ? (
-            q.data.items.map((m: any) => (
+            [...q.data.items]
+              .sort(
+                (a: any, b: any) =>
+                  new Date(b.createdAt).getTime() -
+                  new Date(a.createdAt).getTime(),
+              )
+              .map((m: any) => (
               <button
                 className={`conversation ${selected?.fromEmail === m.fromEmail ? "selected" : ""}`}
                 key={m.id}
@@ -163,7 +183,7 @@ export function Inbox() {
                 <h2>{selected.subject}</h2>
                 <p>{selected.fromEmail}</p>
               </div>
-              <div className="thread-messages">
+              <div className="thread-messages" ref={threadRef}>
                 <div className="form-actions">
                   <Button
                     variant="ghost"
@@ -190,10 +210,7 @@ export function Inbox() {
                   </Button>
                 </div>
                 {history.error && <ErrorBox error={history.error} />}{" "}
-                {(history.data?.items?.length
-                  ? history.data.items
-                  : [selected]
-                ).map((m: any) => (
+                {threadMessages.map((m: any) => (
                   <article
                     className={`message ${m.fromEmail?.toLowerCase() === selected.fromEmail?.toLowerCase() ? "incoming" : "outgoing"}`}
                     key={m.id}

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { identity, tenant } from "@/lib/access";
 import { Shell } from "@/components/shell";
+import { PwaRuntime } from "@/components/pwa-runtime";
 import { Portal } from "@/features/portal";
 import { AppError } from "@/lib/errors";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export default async function Page({
   }
   return (
     <Shell name={who.user.name}>
+      <PwaRuntime />
       <Portal path={(await params).path || []} />
     </Shell>
   );
