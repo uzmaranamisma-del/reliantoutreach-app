@@ -1,0 +1,310 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+}
+datasource db {
+  provider = "mysql"
+}
+enum Role {
+  CLIENT_OWNER
+  CLIENT_ADMIN
+  CLIENT_MEMBER
+}
+enum ClientStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+}
+enum JobStatus {
+  pending
+  processing
+  completed
+  failed
+  retry
+  cancelled
+}
+model User {
+  id String @id
+  name String
+  email String @unique
+  emailVerified Boolean @default(false)
+  image String? @db.Text
+  superadmin Boolean @default(false)
+  disabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions Session[]
+  accounts Account[]
+  memberships ClientMembership[]
+}
+model Session {
+  id String @id
+  expiresAt DateTime
+  token String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String? @db.Text
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeClientId String?
+  impersonatingClientId String?
+  impersonationExpiresAt DateTime?
+  @@index([userId])
+}
+model Account {
+  id String @id
+  accountId String
+  providerId String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String? @db.Text
+  refreshToken String? @db.Text
+  idToken String? @db.Text
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String? @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+model Verification {
+  id String @id
+  identifier String
+  value String @db.Text
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([identifier])
+}
+model RateLimit {
+  id String @id @default(cuid())
+  key String @unique
+  count Int
+  lastRequest BigInt
+}
+model Client {
+  id String @id @default(cuid())
+  company String
+  firstName String
+  lastName String
+  email String
+  phone String?
+  website String?
+  industry String?
+  country String
+  timezone String @default("UTC")
+  status ClientStatus @default(ACTIVE)
+  packageId String
+  package Package @relation(fields: [packageId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  memberships ClientMembership[]
+  mapping ManyreachClientspace?
+  permissions ClientPermissionOverride[]
+  limits ClientLimitOverride[]
+  invitations Invitation[]
+  @@index([status, createdAt])
+  @@index([packageId])
+}
+model ClientMembership {
+  id String @id @default(cuid())
+  userId String
+  clientId String
+  role Role
+  disabled Boolean @default(false)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@unique([userId, clientId])
+  @@index([clientId])
+}
+model Package {
+  id String @id @default(cuid())
+  name String
+  description String @db.Text
+  price Decimal @db.Decimal(12,2)
+  billingLabel String
+  setupPrice Decimal @default(0) @db.Decimal(12,2)
+  currency String @default("USD")
+  serviceType String @default("EMAIL")
+  minimumMonths Int @default(0)
+  setupIncludes Json?
+  monthlyIncludes Json?
+  commercialTerms String? @db.Text
+  sourceUrl String?
+  initialMessages Int?
+  monthlyMessages Int?
+  requiresLimitReview Boolean @default(false)
+  active Boolean @default(true)
+  displayOrder Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  features PackageFeature[]
+  limits PackageLimit[]
+  clients Client[]
+}
+model PackageFeature {
+  id String @id @default(cuid())
+  packageId String
+  key String
+  enabled Boolean
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  @@unique([packageId,key])
+}
+model PackageLimit {
+  id String @id @default(cuid())
+  packageId String
+  key String
+  value Int
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  @@unique([packageId,key])
+}
+model ClientPermissionOverride {
+  id String @id @default(cuid())
+  clientId String
+  key String
+  enabled Boolean
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([clientId,key])
+}
+model ClientLimitOverride {
+  id String @id @default(cuid())
+  clientId String
+  key String
+  value Int
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([clientId,key])
+}
+model ManyreachClientspace {
+  id String @id @default(cuid())
+  clientId String @unique
+  providerId Int
+  providerType String @default("clientspace") @db.VarChar(20)
+  encryptedApiKey String @db.Text
+  lastSyncAt DateTime?
+  lastError String?
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([providerType, providerId])
+}
+model Invitation {
+  id String @id @default(cuid())
+  clientId String
+  email String
+  name String
+  role Role
+  tokenHash String @unique @db.VarChar(64)
+  expiresAt DateTime
+  acceptedAt DateTime?
+  revokedAt DateTime?
+  sentAt DateTime?
+  createdAt DateTime @default(now())
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@index([clientId,email])
+  @@index([expiresAt])
+}
+model AuditLog {
+  id String @id @default(cuid())
+  actorId String?
+  clientId String?
+  action String
+  resourceId String?
+  metadata Json?
+  createdAt DateTime @default(now())
+  @@index([clientId,createdAt])
+  @@index([createdAt])
+}
+model ApiLog {
+  id String @id @default(cuid())
+  clientId String?
+  operation String
+  status Int
+  durationMs Int
+  requestId String
+  createdAt DateTime @default(now())
+  @@index([clientId,createdAt])
+  @@index([createdAt])
+}
+model Notification {
+  id String @id @default(cuid())
+  clientId String
+  title String
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([clientId,createdAt])
+}
+model UsageSnapshot {
+  id String @id @default(cuid())
+  clientId String
+  period String
+  values Json
+  capturedAt DateTime @default(now())
+  @@unique([clientId,period])
+}
+model WebhookEvent {
+  id String @id @default(cuid())
+  eventHash String @unique @db.VarChar(64)
+  clientId String
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+}
+model BackgroundJob {
+  id String @id @default(cuid())
+  type String
+  clientId String?
+  actorId String?
+  dedupeKey String? @unique
+  payload String? @db.LongText
+  result Json?
+  status JobStatus @default(pending)
+  progress Int @default(0)
+  total Int @default(0)
+  attempts Int @default(0)
+  maxAttempts Int @default(5)
+  runAfter DateTime @default(now())
+  lockedAt DateTime?
+  lockToken String?
+  completedAt DateTime?
+  error String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status,runAfter])
+  @@index([clientId,createdAt])
+}
+model AppSetting {
+  key String @id
+  value Json
+  updatedAt DateTime @updatedAt
+}
+model ResourceMap {
+  id String @id @default(cuid())
+  clientId String
+  kind String
+  externalId String
+  parentId String?
+  createdAt DateTime @default(now())
+  @@unique([clientId,kind,externalId])
+  @@index([clientId,kind])
+}
+model Lease {
+  key String @id
+  token String
+  expiresAt DateTime
+}
+model RequestBucket {
+  key String @id
+  windowAt DateTime
+  count Int
+  blockedUntil DateTime?
+}
+model MutationReceipt {
+  id String @id @default(cuid())
+  clientId String
+  key String
+  status String
+  resourceId String?
+  createdAt DateTime @default(now())
+  @@unique([clientId,key])
+  @@index([createdAt])
+}
