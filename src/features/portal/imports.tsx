@@ -121,6 +121,146 @@ export function ImportForm({
   );
 }
 
+const senderImportFields = [
+  ["email", "Email (required)"],
+  ["fromName", "From name"],
+  ["dailyLimit", "Daily limit (required)"],
+  ["customSmtpServer", "SMTP hostname (required)"],
+  ["customSmtpPort", "SMTP port (required)"],
+  ["customSmtpUsername", "SMTP username"],
+  ["customSmtpPass", "SMTP password (required)"],
+  ["customImapServer", "IMAP hostname (required)"],
+  ["customImapPort", "IMAP port (required)"],
+  ["customImapUsername", "IMAP username"],
+  ["customImapPass", "IMAP password (required)"],
+  ["firstName", "First name"],
+  ["lastName", "Last name"],
+  ["replyTo", "Reply-to address"],
+  ["trackingDomain", "Tracking domain"],
+  ["signature", "Signature"],
+  ["warmup", "Warmup (true/false)"],
+];
+
+function csvHeaders(text: string) {
+  const first = text.replace(/^\uFEFF/, "").split(/\r?\n/)[0];
+  return (
+    first
+      .match(/("(?:[^"]|"")*"|[^,]+)(,|$)/g)
+      ?.map((s) =>
+        s
+          .replace(/,$/, "")
+          .replace(/^"|"$/g, "")
+          .replaceAll('""', '"'),
+      ) || []
+  );
+}
+
+export function SenderImportForm({ onDone }: { onDone: () => void }) {
+  const [csv, setCsv] = useState(""),
+    [headers, setHeaders] = useState<string[]>([]),
+    [mapping, setMapping] = useState<Record<string, string>>({}),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    [key] = useState(() => crypto.randomUUID());
+  const required = new Set([
+    "email",
+    "dailyLimit",
+    "customSmtpServer",
+    "customSmtpPort",
+    "customSmtpPass",
+    "customImapServer",
+    "customImapPort",
+    "customImapPass",
+  ]);
+  return (
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setError("");
+        try {
+          await api("/api/portal/senders/import", { csv, mapping, key });
+          onDone();
+        } catch (e) {
+          setError((e as Error).message);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <p className="muted">
+        Import connected sending accounts from a CSV. SMTP and IMAP passwords
+        are sent securely to Manyreach and are never displayed after import.
+        Keep the file under 2.5 MB.
+      </p>
+      <label className="upload-zone">
+        <Upload size={27} />
+        <strong>Choose a sender CSV file</strong>
+        <span>UTF-8 · First row contains column names</span>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          required
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (file.size > 2_500_000) {
+              setError("Choose a file smaller than 2.5 MB.");
+              return;
+            }
+            const text = await file.text();
+            const cols = csvHeaders(text);
+            setCsv(text);
+            setHeaders(cols);
+            setMapping(
+              Object.fromEntries(
+                senderImportFields.map(([k]) => [
+                  k,
+                  cols.find(
+                    (c) =>
+                      c.toLowerCase().replace(/[ _-]/g, "") ===
+                      k.toLowerCase().replace(/[ _-]/g, ""),
+                  ) || "",
+                ]),
+              ),
+            );
+          }}
+        />
+      </label>
+      {headers.length > 0 && (
+        <div className="form-grid">
+          {senderImportFields.map(([k, label]) => (
+            <Field
+              name={`sender-${k}`}
+              key={k}
+              label={label}
+              required={required.has(k)}
+              value={mapping[k] || ""}
+              onChange={(v) => setMapping({ ...mapping, [k]: v })}
+              options={[
+                { value: "", label: "Do not import" },
+                ...headers.map((h) => ({ value: h, label: h })),
+              ]}
+            />
+          ))}
+        </div>
+      )}
+      {error && <ErrorBox error={error} />}
+      <div className="form-actions">
+        <Button
+          disabled={
+            busy ||
+            !csv ||
+            [...required].some((key) => !mapping[key])
+          }
+        >
+          {busy ? "Importing…" : "Validate & import senders"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export function ImportJobs() {
   const q = useLive("/api/portal/imports", 15);
   return (

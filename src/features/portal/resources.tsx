@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { columnsByKind, resourceFields } from "./config";
 import { useContext, useLive } from "./hooks";
-import { ImportForm, ImportJobs } from "./imports";
+import { ImportForm, ImportJobs, SenderImportForm } from "./imports";
 import { EnrollmentForm } from "./enrollment";
 import { ResourceDetails } from "./resource-details";
 type RecordData = Record<string, any>;
@@ -29,6 +29,7 @@ export function Resources({ kind }: { kind: string }) {
     [editor, setEditor] = useState<any>(undefined),
     [builder, setBuilder] = useState(false),
     [importOpen, setImportOpen] = useState(false),
+    [senderImportOpen, setSenderImportOpen] = useState(false),
     [selected, setSelected] = useState<any>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -89,6 +90,12 @@ export function Resources({ kind }: { kind: string }) {
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload size={16} />
             Import CSV
+          </Button>
+        )}
+        {kind === "senders" && can("create") && (
+          <Button variant="outline" onClick={() => setSenderImportOpen(true)}>
+            <Upload size={16} />
+            Import senders
           </Button>
         )}
         {can("create") && (
@@ -340,6 +347,19 @@ export function Resources({ kind }: { kind: string }) {
           list={selected && !selected.delete ? selected.id : undefined}
           onDone={() => {
             setImportOpen(false);
+            query.refetch();
+          }}
+        />
+      </Modal>
+      <Modal
+        open={senderImportOpen}
+        onOpenChange={setSenderImportOpen}
+        title="Import senders"
+        wide
+      >
+        <SenderImportForm
+          onDone={() => {
+            setSenderImportOpen(false);
             query.refetch();
           }}
         />

@@ -27,7 +27,118 @@ import { encrypt } from "@/lib/crypto";
 import { createInvitation } from "@/server/invitations";
 import { withLease } from "@/lib/locks";
 import { queueEnrollment } from "@/server/enrollment";
+import { forClient } from "@/lib/manyreach/client";
 const resources = ["campaigns", "prospects", "lists", "senders"];
+
+const senderImportRequired = [
+  "email",
+  "dailyLimit",
+  "customSmtpServer",
+  "customSmtpPort",
+  "customSmtpPass",
+  "customImapServer",
+  "customImapPort",
+  "customImapPass",
+] as const;
+const senderImportIntegerFields = new Set([
+  "dailyLimit",
+  "customSmtpPort",
+  "customImapPort",
+  "delayMin",
+  "warmupReplyPercent",
+  "warmupDailyLimit",
+  "dailyLimitIncreaseToMax",
+  "warmupDailyLimitIncreaseToMax",
+  "warmupDailyLimitIncreasePercent",
+  "dailyLimitIncreasePercent",
+  "delayMinMinutes",
+]);
+const senderImportBooleanFields = new Set([
+  "warmup",
+  "dailyLimitIncrease",
+  "warmupDailyLimitIncrease",
+  "warmupSkipWeekends",
+]);
+
+async function importSenders(request: Request, input: unknown) {
+  const initial = await tenant(request, "senders.create");
+  return withLease(`tenant:${initial.client.id}`, async () => {
+    const ctx = await tenant(request, "senders.create");
+    const data = z
+      .object({
+        csv: z.string().min(1).max(2_500_000),
+        mapping: z.record(z.string(), z.string()),
+        key: z.uuid(),
+      })
+      .parse(input);
+    for (const field of senderImportRequired)
+      if (!data.mapping[field])
+        throw new AppError(422, `Map the required sender field: ${field}.`);
+    let records: Record<string, string>[];
+    try {
+      records = parse(data.csv, {
+        columns: true,
+        skip_empty_lines: true,
+        bom: true,
+        max_record_size: 20_000,
+        trim: true,
+      });
+    } catch {
+      throw new AppError(
+        422,
+        "The CSV could not be read. Check headers, commas, and quoted values.",
+      );
+    }
+    if (!records.length || records.length > 100)
+      throw new AppError(422, "Import between 1 and 100 senders per file.");
+    const rows: Record<string, unknown>[] = [],
+      errors: string[] = [],
+      seen = new Set<string>();
+    for (const [index, record] of records.entries()) {
+      const row: Record<string, unknown> = {};
+      for (const [target, source] of Object.entries(data.mapping)) {
+        if (!source || !(target in record)) continue;
+        const value = record[source]?.trim() ?? "";
+        if (!value) continue;
+        if (senderImportIntegerFields.has(target)) row[target] = Number(value);
+        else if (senderImportBooleanFields.has(target)) {
+          if (!["true", "false", "1", "0", "yes", "no"].includes(value.toLowerCase()))
+            errors.push(`Row ${index + 2}: ${target} must be true or false.`);
+          else row[target] = ["true", "1", "yes"].includes(value.toLowerCase());
+        } else row[target] = value;
+      }
+      const parsed = providerSchema("SenderCreate").safeParse(row);
+      if (!parsed.success || !z.email().safeParse(row.email).success) {
+        if (errors.length < 20)
+          errors.push(`Row ${index + 2}: invalid sender fields or email.`);
+        continue;
+      }
+      const email = String(row.email).toLowerCase();
+      if (seen.has(email)) {
+        errors.push(`Row ${index + 2}: duplicate email ${email}.`);
+        continue;
+      }
+      seen.add(email);
+      rows.push(parsed.data);
+    }
+    if (errors.length)
+      throw new AppError(422, errors.slice(0, 20).join(" "));
+    await enforceCapacity(ctx, "senders", rows.length);
+    const p = await forClient(ctx.client.id);
+    return once(ctx.client.id, data.key, async () => {
+      for (const row of rows) await p.request("/senders", "POST", row);
+      await db.auditLog.create({
+        data: {
+          actorId: ctx.user.id,
+          clientId: ctx.client.id,
+          action: "senders.import",
+          metadata: { rows: rows.length },
+        },
+      });
+      return { ok: true, imported: rows.length };
+    });
+  });
+}
 export const GET = endpoint(async (request, context) => {
   const { path } = await context.params;
   const [section, id, action] = path;
@@ -287,6 +398,8 @@ export const POST = endpoint(async (request, context) => {
     return { meta };
   }
   if (resources.includes(section)) {
+    if (section === "senders" && id === "import")
+      return importSenders(request, input);
     if (section === "campaigns" && id && action === "sequences")
       return sequenceWrite(request, id, input.action, input);
     if (section === "campaigns" && id && action)
