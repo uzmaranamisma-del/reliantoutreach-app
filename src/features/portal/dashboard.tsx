@@ -24,6 +24,7 @@ import {
 import Link from "next/link";
 import { useContext, useLive } from "./hooks";
 import type { ClientPreview } from "@/lib/client-preview";
+import { PackageCatalog } from "./workspace";
 
 export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
   const context = useContext(!preview);
@@ -34,6 +35,11 @@ export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
     !preview,
   );
   const overviewData = preview || overview.data;
+  const packages = useLive(
+    "/api/portal/packages",
+    300,
+    !preview,
+  );
   const campaigns = useQuery({
     queryKey: ["dashboard-campaigns"],
     queryFn: () => api("/api/portal/campaigns?limit=5"),
@@ -213,6 +219,13 @@ export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
             </Link>
           )}
         </section>
+      )}
+      {!preview && (
+        <PackageCatalog
+          data={packages.data}
+          error={packages.error}
+          loading={packages.isLoading}
+        />
       )}
     </>
   );

@@ -2,7 +2,12 @@ import { z } from "zod";
 import { admin } from "@/lib/access";
 import { db } from "@/lib/db";
 import { endpoint, json, sameOrigin, AppError } from "@/lib/errors";
-import { savePackage, createClient, clientInput } from "@/server/admin";
+import {
+  savePackage,
+  syncPublishedPackages,
+  createClient,
+  clientInput,
+} from "@/server/admin";
 import {
   rotateConnection,
   changeMember,
@@ -288,6 +293,8 @@ export const POST = endpoint(async (request, context) => {
   if (section === "settings") return saveBranding(who.user.id, data);
   if (section === "jobs" && id && action === "cancel")
     return cancelJob(who.user.id, id);
+  if (section === "packages" && id === "sync-published")
+    return syncPublishedPackages(who.user.id);
   if (section === "packages") return savePackage(who.user.id, data, id);
   if (section === "clients" && !id) return createClient(who.user.id, data);
   if (section === "impersonation" && id === "stop") {

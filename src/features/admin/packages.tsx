@@ -17,7 +17,9 @@ import { useState } from "react";
 
 export function Packages() {
   const [page, setPage] = useState(1),
-    [search, setSearch] = useState("");
+    [search, setSearch] = useState(""),
+    [syncing, setSyncing] = useState(false),
+    [syncError, setSyncError] = useState("");
   const q = useLive(
       `/api/admin/packages?page=${page}&search=${encodeURIComponent(search)}`,
     ),
@@ -29,11 +31,30 @@ export function Packages() {
         title="Packages"
         description="Define what each workspace can do."
       >
+        <Button
+          variant="outline"
+          disabled={syncing}
+          onClick={async () => {
+            setSyncing(true);
+            setSyncError("");
+            try {
+              await api("/api/admin/packages/sync-published", {});
+              q.refetch();
+            } catch (e) {
+              setSyncError((e as Error).message);
+            } finally {
+              setSyncing(false);
+            }
+          }}
+        >
+          {syncing ? "Syncing website packages…" : "Sync website packages"}
+        </Button>
         <Button onClick={() => setEditing(null)}>
           <Plus size={16} />
           Create package
         </Button>
       </PageTitle>
+      {syncError && <ErrorBox error={syncError} />}
       {q.error && <ErrorBox error={q.error} />}
       {q.isLoading && <Loading />}
       <div className="toolbar">

@@ -1,4 +1,4 @@
-// Published commercial facts verified at https://reliantoutreach.com/#pricing on 2026-09-14.
+// Published commercial facts verified at https://reliantoutreach.com/#pricing on 2026-09-15.
 // Owner approved unlimited technical limits on 2026-09-15; published email capacities remain finite.
 export const approvedTechnicalLimits = [
   "senders",
@@ -15,7 +15,7 @@ export const publishedPackages = [
     name: "Launch",
     description:
       "Outbound infrastructure and monthly management for a focused launch.",
-    setupPrice: 1500,
+    setupPrice: 558,
     price: 500,
     monthlyEmails: 5000,
     setupIncludes: [
@@ -38,7 +38,7 @@ export const publishedPackages = [
     name: "Growth",
     description:
       "Expanded outbound infrastructure for two ICPs or market segments.",
-    setupPrice: 2500,
+    setupPrice: 930,
     price: 1000,
     monthlyEmails: 25000,
     setupIncludes: [
@@ -64,7 +64,7 @@ export const publishedPackages = [
     name: "Scale",
     description:
       "High-volume infrastructure and dedicated campaign management across markets.",
-    setupPrice: 4000,
+    setupPrice: 1488,
     price: 1500,
     monthlyEmails: 50000,
     setupIncludes: [
@@ -90,7 +90,7 @@ export const publishedPackages = [
     name: "LinkedIn Outreach",
     description:
       "Managed LinkedIn prospecting and personalized messaging service.",
-    setupPrice: 1500,
+    setupPrice: 558,
     price: 2500,
     monthlyEmails: 0,
     serviceType: "LINKEDIN",

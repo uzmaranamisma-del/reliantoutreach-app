@@ -15,8 +15,76 @@ import Link from "next/link";
 import { useState } from "react";
 import { useContext, useLive } from "./hooks";
 
+export function PackageCatalog({
+  data,
+  error,
+  loading,
+}: {
+  data?: { items?: any[] };
+  error?: unknown;
+  loading?: boolean;
+}) {
+  return (
+    <section className="section-space">
+      <div className="section-title">
+        <div>
+          <h2>Available packages</h2>
+          <p className="muted">Current ReliantOutreach packages and availability.</p>
+        </div>
+      </div>
+      {error ? (
+        <ErrorBox error={error} />
+      ) : loading ? (
+        <Loading />
+      ) : (
+        <div className="package-grid">
+          {(data?.items || []).map((item: any) => {
+            const monthlyEmails = item.limits?.find(
+              (limit: any) => limit.key === "monthlyEmails",
+            )?.value;
+            const currency = item.currency || "USD";
+            return (
+              <section className="panel package-card" key={item.id}>
+                <div className="section-title">
+                  <h3>{item.name}</h3>
+                  <Status value={item.active ? "Active" : "Inactive"} />
+                </div>
+                <p>{item.description}</p>
+                <div className="package-price">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency,
+                    maximumFractionDigits: 0,
+                  }).format(Number(item.price))}
+                  <small>{item.billingLabel}</small>
+                </div>
+                <p>
+                  <strong>
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency,
+                      maximumFractionDigits: 0,
+                    }).format(Number(item.setupPrice || 0))}
+                  </strong>{" "}
+                  one-time setup · {item.minimumMonths || 0}-month minimum
+                </p>
+                <p className="muted">
+                  {item.serviceType === "LINKEDIN"
+                    ? `${Number(item.initialMessages || 0).toLocaleString()} initial messages, then ${Number(item.monthlyMessages || 0).toLocaleString()} per month.`
+                    : `${monthlyEmails === -1 ? "Unlimited" : Number(monthlyEmails || 0).toLocaleString()} emails per month.`}
+                </p>
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function Usage() {
   const q = useLive("/api/portal/usage", 45);
+  const packages = useLive("/api/portal/packages", 300);
   return (
     <>
       <PageTitle
@@ -98,6 +166,11 @@ export function Usage() {
               );
             })}
           </div>
+          <PackageCatalog
+            data={packages.data}
+            error={packages.error}
+            loading={packages.isLoading}
+          />
         </>
       )}
     </>

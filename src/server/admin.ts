@@ -6,6 +6,10 @@ import { encrypt } from "@/lib/crypto";
 import { AppError } from "@/lib/errors";
 import { createInvitation } from "./invitations";
 import { withLease } from "@/lib/locks";
+import {
+  approvedTechnicalLimits,
+  publishedPackages,
+} from "@/lib/package-catalog";
 export const packageInput = z
   .object({
     name: z.string().min(1).max(100),
@@ -83,6 +87,54 @@ export async function savePackage(
     });
     return { id: item.id };
   });
+}
+
+export async function syncPublishedPackages(actorId: string) {
+  let created = 0;
+  let updated = 0;
+  for (const item of publishedPackages) {
+    const { monthlyEmails, ...fields } = item;
+    await db.$transaction(async (tx) => {
+      const existing = await tx.package.findFirst({
+        where: { name: item.name },
+        select: { id: true },
+      });
+      const data = {
+        ...fields,
+        requiresLimitReview: false,
+        features: {
+          deleteMany: {},
+          create: permissions.map((key) => ({
+            key,
+            enabled: item.serviceType === "EMAIL",
+          })),
+        },
+        limits: {
+          deleteMany: {},
+          create: [
+            { key: "monthlyEmails", value: monthlyEmails },
+            ...(item.serviceType === "EMAIL" ? approvedTechnicalLimits : []),
+          ],
+        },
+      };
+      const packageRecord = existing
+        ? await tx.package.update({ where: { id: existing.id }, data })
+        : await tx.package.create({ data });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: existing
+            ? "package.synced_from_website"
+            : "package.imported_from_website",
+          resourceId: packageRecord.id,
+          metadata: { source: item.sourceUrl, syncedAt: "2026-09-15" },
+        },
+      });
+      if (existing) updated += 1;
+      else created += 1;
+    });
+  }
+  return { created, updated, total: publishedPackages.length };
 }
 export const clientInput = z.object({
   company: z.string().min(1).max(150),

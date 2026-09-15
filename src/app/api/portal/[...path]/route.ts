@@ -70,6 +70,32 @@ export const GET = endpoint(async (request, context) => {
     };
   }
   const ctx = await tenant(request);
+  if (section === "packages") {
+    const items = await db.package.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        billingLabel: true,
+        setupPrice: true,
+        currency: true,
+        serviceType: true,
+        minimumMonths: true,
+        setupIncludes: true,
+        monthlyIncludes: true,
+        commercialTerms: true,
+        initialMessages: true,
+        monthlyMessages: true,
+        sourceUrl: true,
+        active: true,
+        displayOrder: true,
+        limits: { select: { key: true, value: true } },
+      },
+      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+    });
+    return { items };
+  }
   if (section === "notifications") {
     const page = z.coerce
       .number()
