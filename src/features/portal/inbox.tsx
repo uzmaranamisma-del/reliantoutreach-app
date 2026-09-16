@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
 import { api } from "@/lib/browser-api";
 import { useQuery } from "@tanstack/react-query";
-import { Check, MessageSquare, Send } from "lucide-react";
+import { ArrowLeft, Check, MessageSquare, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useContext, useLive } from "./hooks";
 
@@ -28,6 +28,7 @@ export function Inbox() {
     [busy, setBusy] = useState(false),
     [confirm, setConfirm] = useState(false),
     threadRef = useRef<HTMLDivElement>(null),
+    followLatest = useRef(true),
     [metaForm, setMetaForm] = useState({
       status: "OPEN",
       tags: "",
@@ -59,18 +60,24 @@ export function Inbox() {
       ),
     enabled: !!selected,
   });
-  const threadMessages = (history.data?.items?.length
-    ? history.data.items
-    : selected
-      ? [selected]
-      : []
-  ).slice().sort(
-    (a: any, b: any) =>
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-  );
+  const threadMessages = (
+    history.data?.items?.length
+      ? history.data.items
+      : selected
+        ? [selected]
+        : []
+  )
+    .slice()
+    .sort(
+      (a: any, b: any) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
   useEffect(() => {
-    if (!historyCursor && threadRef.current)
-      threadRef.current.scrollTop = threadRef.current.scrollHeight;
+    if (!historyCursor && followLatest.current && threadRef.current)
+      threadRef.current.scrollTo({
+        top: threadRef.current.scrollHeight,
+        behavior: "instant",
+      });
   }, [selected?.fromEmail, history.dataUpdatedAt, historyCursor]);
   useEffect(() => {
     const record = meta.data?.meta;
@@ -107,20 +114,22 @@ export function Inbox() {
   }
   return (
     <>
-      <PageTitle
-        eyebrow="CONVERSATIONS"
-        title="Inbox"
-        description="Keep every conversation within reach."
-      >
-        <Refresh
-          onClick={() => {
-            q.refetch();
-            history.refetch();
-          }}
-          busy={q.isFetching}
-        />
-      </PageTitle>
-      <div className="inbox-layout">
+      <div className="inbox-page-title">
+        <PageTitle
+          eyebrow="CONVERSATIONS"
+          title="Inbox"
+          description="Keep every conversation within reach."
+        >
+          <Refresh
+            onClick={() => {
+              q.refetch();
+              history.refetch();
+            }}
+            busy={q.isFetching}
+          />
+        </PageTitle>
+      </div>
+      <div className={`inbox-layout ${selected ? "inbox-thread-open" : ""}`}>
         <aside className="inbox-filters">
           <h3>Conversations</h3>
           {[
@@ -169,27 +178,28 @@ export function Inbox() {
                   new Date(a.createdAt).getTime(),
               )
               .map((m: any) => (
-              <button
-                className={`conversation ${selected?.fromEmail === m.fromEmail ? "selected" : ""}`}
-                key={m.id}
-                onClick={() => {
-                  setSelected(m);
-                  setHistoryCursor("");
-                  setBody("");
-                  setReplyKey(crypto.randomUUID());
-                }}
-              >
-                <span className="conversation-avatar">
-                  {m.fromEmail?.slice(0, 1).toUpperCase()}
-                </span>
-                <div>
-                  <strong>{m.fromEmail}</strong>
-                  <b>{m.subject}</b>
-                  <p>{m.preview}</p>
-                  <small>{new Date(m.createdAt).toLocaleString()}</small>
-                </div>
-              </button>
-            ))
+                <button
+                  className={`conversation ${selected?.fromEmail === m.fromEmail ? "selected" : ""}`}
+                  key={m.id}
+                  onClick={() => {
+                    setSelected(m);
+                    followLatest.current = true;
+                    setHistoryCursor("");
+                    setBody("");
+                    setReplyKey(crypto.randomUUID());
+                  }}
+                >
+                  <span className="conversation-avatar">
+                    {m.fromEmail?.slice(0, 1).toUpperCase()}
+                  </span>
+                  <div>
+                    <strong>{m.fromEmail}</strong>
+                    <b>{m.subject}</b>
+                    <p>{m.preview}</p>
+                    <small>{new Date(m.createdAt).toLocaleString()}</small>
+                  </div>
+                </button>
+              ))
           ) : (
             <Empty
               title="No replies yet"
@@ -230,79 +240,108 @@ export function Inbox() {
           ) : (
             <>
               <div className="conversation-head">
+                <Button
+                  className="mobile-inbox-back"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelected(undefined)}
+                >
+                  <ArrowLeft size={18} />
+                  Back to replies
+                </Button>
                 <h2>{selected.subject}</h2>
                 <p>{selected.fromEmail}</p>
-                <div className="conversation-controls">
-                  <Field
-                    name="conversation-status"
-                    label="Status"
-                    value={metaForm.status}
-                    onChange={(value) =>
-                      setMetaForm({ ...metaForm, status: value })
-                    }
-                    options={[
-                      { value: "OPEN", label: "Open" },
-                      { value: "NEEDS_REPLY", label: "Needs reply" },
-                      { value: "MEETING", label: "Meeting" },
-                      { value: "NOT_INTERESTED", label: "Not interested" },
-                      { value: "CLOSED", label: "Closed" },
-                    ]}
-                  />
-                  <Field
-                    name="conversation-assignee"
-                    label="Assigned to"
-                    value={metaForm.assigneeId}
-                    onChange={(value) =>
-                      setMetaForm({ ...metaForm, assigneeId: value })
-                    }
-                    options={[
-                      { value: "", label: "Unassigned" },
-                      ...(meta.data?.members || []).map((member: any) => ({
-                        value: member.userId,
-                        label: `${member.user.name} · ${member.user.email}`,
-                      })),
-                    ]}
-                  />
-                  <label>
-                    Tags
-                    <input
-                      value={metaForm.tags}
-                      onChange={(event) =>
-                        setMetaForm({ ...metaForm, tags: event.target.value })
+                <details className="conversation-options">
+                  <summary>Conversation details</summary>
+                  <div className="conversation-controls">
+                    <Field
+                      name="conversation-status"
+                      label="Status"
+                      value={metaForm.status}
+                      onChange={(value) =>
+                        setMetaForm({ ...metaForm, status: value })
                       }
-                      placeholder="Hot, Follow-up"
+                      options={[
+                        { value: "OPEN", label: "Open" },
+                        { value: "NEEDS_REPLY", label: "Needs reply" },
+                        { value: "MEETING", label: "Meeting" },
+                        { value: "NOT_INTERESTED", label: "Not interested" },
+                        { value: "CLOSED", label: "Closed" },
+                      ]}
                     />
-                  </label>
-                  <label className="conversation-notes">
-                    Internal notes
-                    <textarea
-                      value={metaForm.notes}
-                      onChange={(event) =>
-                        setMetaForm({ ...metaForm, notes: event.target.value })
+                    <Field
+                      name="conversation-assignee"
+                      label="Assigned to"
+                      value={metaForm.assigneeId}
+                      onChange={(value) =>
+                        setMetaForm({ ...metaForm, assigneeId: value })
                       }
-                      rows={2}
-                      placeholder="Notes for your team"
+                      options={[
+                        { value: "", label: "Unassigned" },
+                        ...(meta.data?.members || []).map((member: any) => ({
+                          value: member.userId,
+                          label: `${member.user.name} · ${member.user.email}`,
+                        })),
+                      ]}
                     />
-                  </label>
-                  {metaError && <ErrorBox error={metaError} />}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={metaBusy || meta.isLoading}
-                    onClick={saveMeta}
-                  >
-                    <Check size={14} />
-                    {metaBusy ? "Saving…" : "Save conversation"}
-                  </Button>
-                </div>
+                    <label>
+                      Tags
+                      <input
+                        value={metaForm.tags}
+                        onChange={(event) =>
+                          setMetaForm({ ...metaForm, tags: event.target.value })
+                        }
+                        placeholder="Hot, Follow-up"
+                      />
+                    </label>
+                    <label className="conversation-notes">
+                      Internal notes
+                      <textarea
+                        value={metaForm.notes}
+                        onChange={(event) =>
+                          setMetaForm({
+                            ...metaForm,
+                            notes: event.target.value,
+                          })
+                        }
+                        rows={2}
+                        placeholder="Notes for your team"
+                      />
+                    </label>
+                    {metaError && <ErrorBox error={metaError} />}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={metaBusy || meta.isLoading}
+                      onClick={saveMeta}
+                    >
+                      <Check size={14} />
+                      {metaBusy ? "Saving…" : "Save conversation"}
+                    </Button>
+                  </div>
+                </details>
               </div>
-              <div className="thread-messages" ref={threadRef}>
+              <div
+                className="thread-messages"
+                ref={threadRef}
+                onScroll={(event) => {
+                  const thread = event.currentTarget;
+                  followLatest.current =
+                    thread.scrollHeight -
+                      thread.scrollTop -
+                      thread.clientHeight <
+                    80;
+                }}
+              >
                 <div className="form-actions">
                   <Button
                     variant="ghost"
                     size="sm"
                     disabled={!historyCursor}
-                    onClick={() => setHistoryCursor("")}
+                    onClick={() => {
+                      followLatest.current = true;
+                      setHistoryCursor("");
+                    }}
                   >
                     Latest messages
                   </Button>
@@ -362,7 +401,7 @@ export function Inbox() {
                         if (body.trim() && !busy) setConfirm(true);
                       }
                     }}
-                    rows={5}
+                    rows={3}
                     placeholder="Write a message… (Ctrl+Enter to send)"
                   />
                   {error && <ErrorBox error={error} />}

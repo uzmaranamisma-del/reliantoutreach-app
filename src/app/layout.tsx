@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
@@ -12,7 +12,18 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   manifest: "/manifest.webmanifest",
   icons: { icon: "/app-icon-192.png", apple: "/apple-touch-icon.png" },
-  appleWebApp: { capable: true, title: "ReliantOutreach", statusBarStyle: "default" },
+  appleWebApp: {
+    capable: true,
+    title: "ReliantOutreach",
+    statusBarStyle: "default",
+  },
+};
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+  themeColor: "#123477",
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

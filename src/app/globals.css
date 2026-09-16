@@ -1,11 +1,36 @@
 @import "tailwindcss";
 
-.resource-details { display: grid; gap: 0; }
-.resource-details > div { display: grid; grid-template-columns: minmax(130px, 1fr) 2fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
-.resource-details dt { color: #64748b; text-transform: capitalize; }
-.resource-details dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
-.client-setup-grid { display: grid; grid-template-columns: minmax(230px, .8fr) minmax(0, 1.4fr); gap: 24px; align-items: start; }
-@media (max-width: 900px) { .client-setup-grid { grid-template-columns: 1fr; } }
+.resource-details {
+  display: grid;
+  gap: 0;
+}
+.resource-details > div {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) 2fr;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+.resource-details dt {
+  color: #64748b;
+  text-transform: capitalize;
+}
+.resource-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.client-setup-grid {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.4fr);
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .client-setup-grid {
+    grid-template-columns: 1fr;
+  }
+}
 :root {
   --navy: #0b2a6f;
   --blue: #1d4ed8;
@@ -1616,9 +1641,18 @@ tbody tr:hover {
   color: #123477;
   background: #fff;
 }
-.pwa-install-dialog::backdrop { background: rgba(10, 25, 50, 0.55); }
-.pwa-install-dialog h2 { font-size: 20px; margin: 0 0 16px; }
-.pwa-install-dialog p { font-size: 14px; line-height: 1.6; margin: 0 0 16px; }
+.pwa-install-dialog::backdrop {
+  background: rgba(10, 25, 50, 0.55);
+}
+.pwa-install-dialog h2 {
+  font-size: 20px;
+  margin: 0 0 16px;
+}
+.pwa-install-dialog p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
 .pwa-install-dialog button {
   border: 0;
   border-radius: 8px;
@@ -2366,4 +2400,349 @@ tbody tr:hover {
 .package-services li {
   margin: 6px 0;
   line-height: 1.6;
+}
+
+/* Phone layouts also apply when the workspace is installed as a PWA. */
+.drawer-close,
+.mobile-inbox-back,
+.mobile-table-sort {
+  display: none;
+}
+.sidebar {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.workspace-card > div,
+.page-title > div,
+.panel,
+.form-grid > *,
+.detail-grid > * {
+  min-width: 0;
+}
+.workspace-card strong,
+.profile strong,
+.detail-grid dd {
+  overflow-wrap: anywhere;
+}
+.conversation-options {
+  margin-top: 12px;
+}
+.conversation-options summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  padding: 8px 0;
+}
+.email-content {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.email-content img {
+  max-width: 100%;
+  height: auto;
+}
+.email-content pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .shell {
+    min-height: 100dvh;
+  }
+  .sidebar {
+    visibility: hidden;
+    width: min(300px, calc(100vw - 40px));
+    padding-top: calc(58px + env(safe-area-inset-top));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .sidebar-open {
+    visibility: visible;
+  }
+  .drawer-close {
+    display: inline-flex;
+    position: absolute;
+    top: calc(10px + env(safe-area-inset-top));
+    right: 12px;
+    color: white;
+  }
+  .sidebar nav a,
+  .profile {
+    min-height: 44px;
+  }
+  .topbar {
+    height: auto;
+    min-height: 61px;
+    padding-top: env(safe-area-inset-top);
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+  .topbar > div {
+    min-width: 0;
+  }
+  .topbar strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .page-content {
+    padding: 20px max(14px, env(safe-area-inset-right)) 28px
+      max(14px, env(safe-area-inset-left));
+  }
+  .page-title {
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .title-actions,
+  .form-actions,
+  .row-actions,
+  .section-title,
+  .selection-toolbar,
+  .toolbar {
+    flex-wrap: wrap;
+  }
+  .plan-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .plan-banner .status {
+    white-space: normal;
+  }
+  .template-save-row {
+    flex-wrap: wrap;
+  }
+  .sender-option > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .title-actions > .button {
+    flex-grow: 1;
+  }
+  .button,
+  .button-sm,
+  .icon-button {
+    min-height: 44px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea,
+  .search-field input,
+  .conversation-controls input,
+  .conversation-controls select,
+  .conversation-controls textarea,
+  .reply-composer textarea {
+    font-size: 16px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: 44px;
+  }
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .resource-details > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .analytics-controls label {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+  .schedule-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+  }
+  .schedule-row > :first-child {
+    grid-column: 1 / -1;
+  }
+  .impersonation,
+  .table-footer {
+    flex-wrap: wrap;
+  }
+  .modal {
+    max-height: calc(
+      100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+    );
+    padding: 18px;
+    overscroll-behavior: contain;
+  }
+  .modal-head {
+    gap: 12px;
+  }
+  .wizard-steps {
+    overflow-x: auto;
+  }
+  .error-message {
+    overflow-wrap: anywhere;
+  }
+  .pwa-actions {
+    position: static;
+    width: fit-content;
+    margin: 0 0 16px auto;
+    box-shadow: none;
+  }
+  .pwa-actions button {
+    min-height: 44px;
+    font-size: 13px;
+  }
+  .pwa-install-action {
+    position: static;
+    display: block;
+    margin: 12px auto calc(16px + env(safe-area-inset-bottom));
+    min-height: 44px;
+  }
+  .app-footer {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  .inbox-layout {
+    min-height: 0;
+  }
+  .inbox-layout:not(.inbox-thread-open) .conversation-detail,
+  .inbox-thread-open .conversation-list,
+  .inbox-thread-open .inbox-filters {
+    display: none;
+  }
+  .conversation-list {
+    max-height: none;
+    border-bottom: 0;
+  }
+  .inbox-filters button {
+    min-height: 44px;
+    font-size: 13px;
+  }
+  .conversation strong {
+    font-size: 13px;
+  }
+  .conversation b,
+  .conversation p {
+    font-size: 13px;
+  }
+  .conversation-avatar {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+  .inbox-thread-open .conversation-detail {
+    height: max(
+      320px,
+      calc(
+        100dvh - 110px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+      )
+    );
+    min-height: 0;
+  }
+  .page-content:has(.inbox-thread-open) .inbox-page-title {
+    display: none;
+  }
+  .page-content:has(.pwa-actions) .inbox-thread-open .conversation-detail {
+    height: max(
+      320px,
+      calc(
+        100dvh - 188px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+      )
+    );
+  }
+  .mobile-inbox-back {
+    display: inline-flex;
+    margin: -6px 0 8px -8px;
+  }
+  .conversation-head {
+    padding: 12px 14px;
+    flex-shrink: 0;
+    max-height: 45%;
+    overflow-y: auto;
+  }
+  .conversation-head h2 {
+    font-size: 15px;
+  }
+  .conversation-head p {
+    overflow-wrap: anywhere;
+  }
+  .conversation-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .thread-messages {
+    min-height: 0;
+    max-height: none;
+    padding: 12px;
+    overscroll-behavior: contain;
+    scroll-behavior: auto;
+  }
+  .message-bubble {
+    max-width: 94%;
+  }
+  .reply-composer {
+    padding: 10px 12px;
+    flex-shrink: 0;
+  }
+  .reply-composer label {
+    overflow-wrap: anywhere;
+  }
+  .reply-composer textarea {
+    min-height: 66px;
+    max-height: 140px;
+  }
+}
+
+@media (max-width: 600px) {
+  .mobile-table-sort {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 14px;
+    margin: 0;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mobile-table-sort select {
+    flex: 1;
+    width: auto;
+    margin: 0;
+  }
+  .table-panel .table-scroll table,
+  .table-panel .table-scroll tbody {
+    display: block;
+    white-space: normal;
+  }
+  .table-panel .table-scroll thead {
+    display: none;
+  }
+  .table-panel .table-scroll tr {
+    display: block;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-panel .table-scroll td {
+    display: grid;
+    grid-template-columns: minmax(80px, 0.7fr) minmax(0, 1.3fr);
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border: 0;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .table-panel .table-scroll td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .table-panel .table-scroll td[data-label=""] {
+    display: block;
+  }
+  .table-panel .table-scroll td[data-label=""]::before {
+    display: none;
+  }
+  .table-panel .row-actions {
+    justify-content: flex-start;
+  }
+  .table-footer {
+    gap: 12px;
+  }
 }

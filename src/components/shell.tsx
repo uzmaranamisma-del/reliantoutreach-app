@@ -2,7 +2,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createAuthClient } from "better-auth/react";
 import {
@@ -68,6 +68,43 @@ export function Shell({
 }) {
   const path = usePathname(),
     [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const menuButton = menuRef.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Tab") {
+        const controls = document.querySelectorAll<HTMLElement>(
+          "#workspace-navigation a, #workspace-navigation button",
+        );
+        const first = controls[0],
+          last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    const resize = () => {
+      if (window.innerWidth > 760) setOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    window.addEventListener("resize", resize);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", close);
+      window.removeEventListener("resize", resize);
+      menuButton?.focus();
+    };
+  }, [open]);
   const { data: liveContext } = useQuery({
     queryKey: ["context"],
     queryFn: () => api("/api/portal/context"),
@@ -113,7 +150,18 @@ export function Shell({
           aria-label="Close navigation"
         />
       )}
-      <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
+      <aside
+        id="workspace-navigation"
+        className={`sidebar ${open ? "sidebar-open" : ""}`}
+      >
+        <button
+          ref={closeRef}
+          className="drawer-close icon-button"
+          aria-label="Close menu"
+          onClick={() => setOpen(false)}
+        >
+          <X size={22} />
+        </button>
         <Link href={base} className="brand">
           <span className="brand-logo-frame">
             <Image
@@ -158,13 +206,14 @@ export function Shell({
                 <Icon size={19} />
                 {label}
                 {label === "Inbox" && <span className="nav-accent" />}
-                {label === "Notifications" && notificationSummary?.unread > 0 && (
-                  <span className="nav-badge">
-                    {notificationSummary.unread > 99
-                      ? "99+"
-                      : notificationSummary.unread}
-                  </span>
-                )}
+                {label === "Notifications" &&
+                  notificationSummary?.unread > 0 && (
+                    <span className="nav-badge">
+                      {notificationSummary.unread > 99
+                        ? "99+"
+                        : notificationSummary.unread}
+                    </span>
+                  )}
               </Link>
             ))}
         </nav>
@@ -198,12 +247,15 @@ export function Shell({
           </button>
         </div>
       </aside>
-      <div className="main-shell">
+      <div className="main-shell" inert={open || undefined}>
         <header className="topbar">
           <div>
             <button
+              ref={menuRef}
               className="mobile-menu icon-button"
               aria-label="Open navigation"
+              aria-expanded={open}
+              aria-controls="workspace-navigation"
               onClick={() => setOpen(true)}
             >
               {open ? <X /> : <Menu />}

@@ -148,6 +148,34 @@ export function DataTable({
     : rows;
   return (
     <section className="panel table-panel">
+      {rows.length > 0 && !loading && !error && (
+        <label className="mobile-table-sort">
+          Sort current page
+          <select
+            aria-label="Sort current page"
+            value={sort.key}
+            onChange={(event) => setSort({ key: event.target.value, dir: 1 })}
+          >
+            <option value="">Original order</option>
+            {columns
+              .filter((column) => column.label)
+              .map((column) => (
+                <option key={column.key} value={column.key}>
+                  {column.label}
+                </option>
+              ))}
+          </select>
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label={sort.dir === 1 ? "Sort descending" : "Sort ascending"}
+            disabled={!sort.key}
+            onClick={() => setSort({ ...sort, dir: -sort.dir })}
+          >
+            <ArrowUpDown size={16} />
+          </Button>
+        </label>
+      )}
       {onSearch && (
         <div className="table-toolbar">
           <div className="search-field">
@@ -199,12 +227,12 @@ export function DataTable({
               {sorted.map((row, index) => (
                 <tr key={row.id || index}>
                   {columns.map((c) => (
-                    <td key={c.key}>
+                    <td key={c.key} data-label={c.label}>
                       {c.render ? c.render(row) : String(row[c.key] ?? "—")}
                     </td>
                   ))}
                   {actions && (
-                    <td>
+                    <td data-label="Actions">
                       <div className="row-actions">{actions(row)}</div>
                     </td>
                   )}
