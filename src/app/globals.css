@@ -1592,6 +1592,41 @@ tbody tr:hover {
   font-weight: 600;
   cursor: pointer;
 }
+.pwa-install-action {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 20;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 8px 25px rgba(25, 48, 86, 0.14);
+  cursor: pointer;
+}
+.pwa-install-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: #123477;
+  background: #fff;
+}
+.pwa-install-dialog::backdrop { background: rgba(10, 25, 50, 0.55); }
+.pwa-install-dialog h2 { font-size: 20px; margin: 0 0 16px; }
+.pwa-install-dialog p { font-size: 14px; line-height: 1.6; margin: 0 0 16px; }
+.pwa-install-dialog button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: var(--blue);
+  color: #fff;
+  cursor: pointer;
+}
 .analytics-controls {
   display: flex;
   align-items: flex-end;

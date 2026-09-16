@@ -2,13 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type InstallPrompt = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
-
 export function PwaRuntime() {
-  const [installPrompt, setInstallPrompt] = useState<InstallPrompt>();
   const [ready, setReady] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>(
     "default",
@@ -20,13 +14,6 @@ export function PwaRuntime() {
   useEffect(() => {
     setReady(true);
     if ("Notification" in window) setPermission(Notification.permission);
-    const onInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setInstallPrompt(event as InstallPrompt);
-    };
-    window.addEventListener("beforeinstallprompt", onInstallPrompt);
-    navigator.serviceWorker?.register("/sw.js").catch(() => undefined);
-    return () => window.removeEventListener("beforeinstallprompt", onInstallPrompt);
   }, []);
 
   const loadPushConfig = useCallback(async () => {
@@ -92,7 +79,7 @@ export function PwaRuntime() {
       if (registration) {
         await registration.showNotification(title, {
           body,
-          icon: "/brand-logo.png",
+          icon: "/app-icon-192.png",
           tag,
           data: { url },
         });
@@ -162,18 +149,10 @@ export function PwaRuntime() {
     if (result === "granted") await registerPushSubscription();
   }
 
-  async function install() {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    await installPrompt.userChoice;
-    setInstallPrompt(undefined);
-  }
-
   const canNotify =
     typeof window !== "undefined" && "Notification" in window;
   if (!ready) return null;
   if (
-    !installPrompt &&
     (permission === "granted" || permission === "denied" || !canNotify)
   )
     return null;
@@ -185,11 +164,6 @@ export function PwaRuntime() {
         "Notification" in window && (
         <button type="button" onClick={enableAlerts}>
           Enable alerts
-        </button>
-      )}
-      {installPrompt && (
-        <button type="button" onClick={install}>
-          Install app
         </button>
       )}
     </div>

@@ -33,8 +33,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || "ReliantOutreach", {
       body: data.body || "You have a new workspace update.",
-      icon: "/brand-logo.png",
-      badge: "/brand-logo.png",
+      icon: "/app-icon-192.png",
       tag: data.tag || "reliantoutreach-update",
       data: { url: data.url || "/app/notifications" },
     }),

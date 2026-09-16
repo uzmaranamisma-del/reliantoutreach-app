@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/",
     name: "ReliantOutreach",
     short_name: "ReliantOutreach",
     description: "Manage campaigns, replies and outreach conversations.",
@@ -13,9 +14,20 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait-primary",
     icons: [
       {
-        src: "/brand-logo.png",
-        sizes: "2172x724",
+        src: "/app-icon-192.png",
+        sizes: "192x192",
         type: "image/png",
+      },
+      {
+        src: "/app-icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+      {
+        src: "/app-icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };
