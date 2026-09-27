@@ -34,6 +34,9 @@ export async function syncJobNotifications() {
     await db.notification.create({
       data: { id, clientId: job.clientId!, title },
     });
+    // Routine reconciliation still appears in the notification history, but
+    // should not interrupt users on every refresh/scheduled synchronization.
+    if (job.type === "reconcile" && job.status === "completed") continue;
     await sendPushNotification(job.clientId!, {
       title,
       body: "Open ReliantOutreach to review this update.",

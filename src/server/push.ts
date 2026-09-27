@@ -23,8 +23,8 @@ async function configure() {
 export function pushConfigured() {
   return Boolean(
     process.env.VAPID_SUBJECT &&
-      process.env.VAPID_PUBLIC_KEY &&
-      process.env.VAPID_PRIVATE_KEY,
+    process.env.VAPID_PUBLIC_KEY &&
+    process.env.VAPID_PRIVATE_KEY,
   );
 }
 
@@ -44,7 +44,10 @@ export async function sendPushNotification(
           endpoint: subscription.endpoint,
           keys: { p256dh: subscription.p256dh, auth: subscription.auth },
         },
-        JSON.stringify(payload),
+        JSON.stringify({
+          ...payload,
+          eventId: payload.tag ? `${clientId}:${payload.tag}` : undefined,
+        }),
         { TTL: 300 },
       );
     } catch (error) {
