@@ -64,6 +64,16 @@ it("detects a new message by ID even if total reply count has not increased, wit
 it("read-only members cannot manage conversation metadata", () => {
   expect(getEffectivePermission("inbox.manage", "CLIENT_MEMBER", [{ key: "inbox.manage", enabled: true }], [])).toBe(false);
 });
+it("uses an explicit first page with the reply cursor and reports rejected scans", async () => {
+  vi.mocked(db.client.findMany).mockResolvedValue([{ id: "client" }] as any);
+  vi.mocked(db.replyScan.findMany).mockResolvedValue([{ clientId: "client", enabledAt: new Date("2026-09-27"), cursor: "2026-09-26T00:00:00Z" }] as any);
+  vi.mocked(db.replyEvent.findMany).mockResolvedValue([]);
+  const request = vi.fn().mockRejectedValue(new Error("Provider rejected request"));
+  vi.mocked(forClient).mockResolvedValue({ request } as any);
+  expect(await collectReplyAlerts()).toEqual({ scanned: 0, failed: 1, queued: 0 });
+  expect(request).toHaveBeenCalledWith("/messages", "GET", undefined, { type: "Reply", page: 1, limit: 1000, startingAfter: "2026-09-26T00:00:00Z" });
+  expect(db.replyEvent.upsert).not.toHaveBeenCalled();
+});
 it("groups contacts with their latest reply and keeps drafts isolated", () => {
   expect(groupConversations([{ fromEmail: "A@x.com", createdAt: "2026-01-01" }, { fromEmail: "a@x.com", createdAt: "2026-02-01" }])).toEqual([{ fromEmail: "a@x.com", createdAt: "2026-02-01" }]);
   expect(draftKey("a", "w1", "x@y.com")).not.toBe(draftKey("a", "w2", "x@y.com"));

@@ -1,5 +1,9 @@
 # Backup and recovery
 
+## Production verification — September 27, 2026
+
+hPanel shows automated **Daily** backups, latest snapshot **2026-09-27 20:34** (panel display time), and next scheduled backup September 28. The app's **Files → Backups → Restore and download → Database backup** view lists `u366394665_reliantapp` in that snapshot. No production restore was performed; the local encrypted restore drill below remains the tested recovery exercise. Keep environment secrets separately backed up as described below.
+
 ## Encrypted export and isolated restore tooling
 
 Run from a trusted machine with the official MySQL CLI installed and access to the database. Set `BACKUP_ENCRYPTION_KEY` to a separate 64-character random hex secret, kept in a password manager. `MYSQLDUMP_PATH` and `MYSQL_PATH` may contain absolute executable paths. No password is placed in process arguments or logs.

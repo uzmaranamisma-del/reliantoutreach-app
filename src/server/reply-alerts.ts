@@ -15,11 +15,14 @@ export async function collectReplyAlerts() {
     for (const client of clients) await db.replyScan.upsert({ where: { clientId: client.id }, create: { clientId: client.id }, update: {} });
     const scans = await db.replyScan.findMany({ where: { clientId: { in: clients.map(c => c.id) } }, orderBy: { lastScanAt: "asc" }, take: 5 });
     const started = Date.now();
+    let scanned = 0, failed = 0;
     for (const scan of scans) {
       if (Date.now() - started > 20000) break;
       try {
         const provider = await forClient(scan.clientId);
-        const page = await provider.request<ProviderPage>("/messages", "GET", undefined, { type: "Reply", limit: 1000, startingAfter: scan.cursor || undefined });
+        // Send the 1-based page explicitly, as the working inbox requests do.
+        // Omitting it is rejected with 422 by the live provider despite its documented default.
+        const page = await provider.request<ProviderPage>("/messages", "GET", undefined, { type: "Reply", page: 1, limit: 1000, startingAfter: scan.cursor || undefined });
         if (!Array.isArray(page.items) || !page.pagination) throw new Error("Incomplete reply page");
         for (const message of page.items) {
           const at = new Date(message.createdAt);
@@ -32,7 +35,9 @@ export async function collectReplyAlerts() {
         const next = page.items.length && page.pagination.nextCursor ? String(page.pagination.nextCursor) : null;
         if (next && next === scan.cursor) throw new Error("Reply cursor did not advance");
         await db.replyScan.update({ where: { clientId: scan.clientId }, data: { cursor: next, lastScanAt: new Date(), lastError: null } });
+        scanned++;
       } catch {
+        failed++;
         await db.replyScan.update({ where: { clientId: scan.clientId }, data: { lastScanAt: new Date(), lastError: "Reply collection failed; will retry automatically." } });
       }
     }
@@ -42,6 +47,6 @@ export async function collectReplyAlerts() {
       await sendPushNotification(event.clientId, { title: "New prospect reply", body: "Open Inbox to read the latest message.", url: "/app/inbox", tag: `reply:${event.id}` });
       await db.replyEvent.update({ where: { id: event.id }, data: { queued: true } });
     }
-    return { scanned: scans.length, queued: events.length };
+    return { scanned, failed, queued: events.length };
   }, 180);
 }

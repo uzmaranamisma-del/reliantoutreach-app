@@ -2,6 +2,12 @@
 
 Use **one custom cron job** that POSTs to the managed application. Do not run a separate Node worker.
 
+## Verified production setup — September 27, 2026
+
+The existing Business Web Hosting plan exposes Cron Jobs under the `reliantware.com` dashboard, but not under the Node app dashboard. One custom every-minute job was saved there targeting only `https://app.reliantoutreach.com/api/internal/cron/process-jobs`, using the app's existing CRON_SECRET in the Authorization header. No WordPress files were changed. Manage this job from **Websites → reliantware.com → Advanced → Cron Jobs**; do not add a duplicate.
+
+Automatic execution was verified through hPanel output and advancing `cron.lastRun` in the live application. Existing expired imports were marked failed rather than replayed. Physical mobile push receipt still requires a device check.
+
 ## Endpoint
 
 ```text
