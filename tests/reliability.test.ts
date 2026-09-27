@@ -71,8 +71,21 @@ it("uses an explicit first page with the reply cursor and reports rejected scans
   const request = vi.fn().mockRejectedValue(new Error("Provider rejected request"));
   vi.mocked(forClient).mockResolvedValue({ request } as any);
   expect(await collectReplyAlerts()).toEqual({ scanned: 0, failed: 1, queued: 0 });
-  expect(request).toHaveBeenCalledWith("/messages", "GET", undefined, { type: "Reply", page: 1, limit: 1000, startingAfter: "2026-09-26T00:00:00Z" });
+  expect(request).toHaveBeenCalledWith("/messages", "GET", undefined, { type: "Reply", page: 1, limit: 100, startingAfter: undefined });
   expect(db.replyEvent.upsert).not.toHaveBeenCalled();
+});
+it("refreshes the first reply page while advancing a long history sweep", async () => {
+  vi.mocked(db.client.findMany).mockResolvedValue([{ id: "client" }] as any);
+  vi.mocked(db.replyScan.findMany).mockResolvedValue([{ clientId: "client", enabledAt: new Date("2026-09-27"), cursor: "2026-09-26T00:00:00Z" }] as any);
+  vi.mocked(db.replyEvent.findMany).mockResolvedValue([]);
+  const request = vi.fn()
+    .mockResolvedValueOnce({ items: [{ messageId: "new", createdAt: "2026-09-28" }], pagination: { nextCursor: "2026-09-27T00:00:00Z" } })
+    .mockResolvedValueOnce({ items: [{ messageId: "old", createdAt: "2026-09-25" }], pagination: { nextCursor: "2026-09-25T00:00:00Z" } });
+  vi.mocked(forClient).mockResolvedValue({ request } as any);
+  expect(await collectReplyAlerts()).toEqual({ scanned: 1, failed: 0, queued: 0 });
+  expect(request).toHaveBeenLastCalledWith("/messages", "GET", undefined, { type: "Reply", page: 1, limit: 100, startingAfter: "2026-09-26T00:00:00Z" });
+  expect(db.replyEvent.upsert).toHaveBeenCalledTimes(1);
+  expect(db.replyScan.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ cursor: "2026-09-25T00:00:00Z", lastError: null }) }));
 });
 it("groups contacts with their latest reply and keeps drafts isolated", () => {
   expect(groupConversations([{ fromEmail: "A@x.com", createdAt: "2026-01-01" }, { fromEmail: "a@x.com", createdAt: "2026-02-01" }])).toEqual([{ fromEmail: "a@x.com", createdAt: "2026-02-01" }]);
