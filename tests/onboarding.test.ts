@@ -44,6 +44,7 @@ import {
   onboardingStatus,
 } from "@/server/onboarding";
 import { syncDataStage, syncValues } from "@/server/sync-data";
+import { rotateConnection } from "@/server/admin-actions";
 const request = vi.fn();
 const client = {
   id: "A",
@@ -75,6 +76,115 @@ beforeEach(() => {
   request
     .mockReset()
     .mockResolvedValue({ items: [], pagination: { totalItems: 0 } });
+});
+it.each(["organization", "agency"])(
+  "connects a %s main account directly without scanning subaccounts",
+  async (keyType) => {
+    vi.mocked(providerRequest).mockResolvedValue({
+      id: 99,
+      keyType,
+      title: "My main account",
+    });
+    await queueOnboarding("admin", "A", {
+      key,
+      apiKey: "main-account-key",
+      accountMode: "main",
+    });
+    expect(providerRequest).toHaveBeenCalledExactlyOnceWith(
+      "main-account-key",
+      "onboarding:A",
+      "/account",
+    );
+    expect(db.manyreachClientspace.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          providerType: "organization",
+          providerId: 99,
+          encryptedApiKey: "encrypted:main-account-key",
+        }),
+      }),
+    );
+    expect(db.backgroundJob.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ type: "client-onboarding", total: 6 }),
+      }),
+    );
+    expect(db.invitation.create).not.toHaveBeenCalled();
+  },
+);
+it("rejects a child-account key in main-account mode", async () => {
+  vi.mocked(providerRequest).mockResolvedValue({
+    id: 10,
+    keyType: "workspace",
+  });
+  await expect(
+    queueOnboarding("admin", "A", {
+      key,
+      apiKey: "workspace-key",
+      accountMode: "main",
+    }),
+  ).rejects.toThrow("main Manyreach account API key");
+  expect(db.manyreachClientspace.upsert).not.toHaveBeenCalled();
+});
+it("does not replace an existing child connection with the main account", async () => {
+  vi.mocked(db.client.findUniqueOrThrow).mockResolvedValue({
+    ...client,
+    mapping: { providerId: 10, providerType: "workspace" },
+  } as any);
+  await expect(
+    queueOnboarding("admin", "A", {
+      key,
+      apiKey: "main-account-key",
+      accountMode: "main",
+    }),
+  ).rejects.toThrow("different connection type");
+  expect(providerRequest).not.toHaveBeenCalled();
+});
+it("prevents assigning one main account to two portal workspaces", async () => {
+  vi.mocked(providerRequest).mockResolvedValue({
+    id: 99,
+    keyType: "organization",
+  });
+  vi.mocked(db.manyreachClientspace.findUnique).mockResolvedValue({
+    clientId: "B",
+  } as any);
+  await expect(
+    queueOnboarding("admin", "A", {
+      key,
+      apiKey: "main-account-key",
+      accountMode: "main",
+    }),
+  ).rejects.toThrow("already assigned");
+  expect(db.manyreachClientspace.upsert).not.toHaveBeenCalled();
+});
+it("reuses a saved main key on subsequent syncs without scanning children", async () => {
+  vi.mocked(db.client.findUniqueOrThrow).mockResolvedValue({
+    ...client,
+    mapping: { providerId: 99, providerType: "organization" },
+  } as any);
+  await queueOnboarding("admin", "A", { key });
+  expect(providerRequest).not.toHaveBeenCalled();
+  expect(db.manyreachClientspace.upsert).not.toHaveBeenCalled();
+  expect(db.backgroundJob.create).toHaveBeenCalledOnce();
+});
+it("rotates a main key only for the same verified organization", async () => {
+  vi.mocked(db.manyreachClientspace.findUnique).mockResolvedValue({
+    providerId: 99,
+    providerType: "organization",
+  } as any);
+  vi.mocked(providerRequest).mockResolvedValue({ id: 99, keyType: "agency" });
+  await rotateConnection("admin", "A", { apiKey: "replacement-key" });
+  expect(db.manyreachClientspace.update).toHaveBeenCalledWith({
+    where: { clientId: "A" },
+    data: { encryptedApiKey: "encrypted:replacement-key", lastError: null },
+  });
+  vi.mocked(providerRequest).mockResolvedValue({
+    id: 100,
+    keyType: "organization",
+  });
+  await expect(
+    rotateConnection("admin", "A", { apiKey: "different-main-key" }),
+  ).rejects.toThrow("exact connected");
 });
 it("resolves a matching Subaccount from an agency key and stores only its isolated key", async () => {
   vi.mocked(providerRequest)
@@ -228,7 +338,7 @@ it("rejects a clientspace already assigned to another tenant", async () => {
   } as any);
   await expect(
     queueOnboarding("admin", "A", { key, apiKey: "secret-key" }),
-  ).rejects.toThrow("another client");
+  ).rejects.toThrow("another workspace");
   expect(db.backgroundJob.create).not.toHaveBeenCalled();
 });
 it("queues a resumable sync with an encrypted key and no premature invitation", async () => {

@@ -28,14 +28,27 @@ function readyPackage(pkg: {
     );
 }
 
-async function resolveIsolatedKey(
+async function resolveConnectionKey(
   suppliedKey: string,
   clientId: string,
   company: string,
+  accountMode: "main" | "subaccount",
 ) {
   const bucket = `onboarding:${clientId}`;
   let account = await providerRequest(suppliedKey, bucket, "/account");
   const keyType = String(account.keyType).toLowerCase();
+  if (accountMode === "main") {
+    if (!["organization", "agency"].includes(keyType))
+      throw new AppError(
+        422,
+        "Enter the main Manyreach account API key, or choose Workspace / clientspace for this key.",
+      );
+    return {
+      apiKey: suppliedKey,
+      providerId: account.id,
+      providerType: "organization",
+    };
+  }
   if (["clientspace", "workspace"].includes(keyType))
     return {
       apiKey: suppliedKey,
@@ -133,6 +146,7 @@ export async function queueOnboarding(
   const data = z
     .object({
       apiKey: z.string().trim().min(8).max(2000).optional(),
+      accountMode: z.enum(["main", "subaccount"]).optional(),
       key: z.uuid(),
     })
     .parse(input);
@@ -147,6 +161,14 @@ export async function queueOnboarding(
         "Reactivate the suspended workspace before synchronizing.",
       );
     readyPackage(client.package);
+    const savedMode =
+      client.mapping?.providerType === "organization" ? "main" : "subaccount";
+    const accountMode = data.accountMode ?? savedMode;
+    if (client.mapping && accountMode !== savedMode)
+      throw new AppError(
+        422,
+        "This workspace already has a different connection type. Add a separate workspace for the main account.",
+      );
     const existing = await db.backgroundJob.findFirst({
       where: {
         clientId,
@@ -160,12 +182,13 @@ export async function queueOnboarding(
     if (existing) return { id: existing.id };
     let providerId = client.mapping?.providerId;
     let providerType = client.mapping?.providerType ?? "clientspace";
-    let isolatedKey: string | undefined;
+    let connectionKey: string | undefined;
     if (data.apiKey) {
-      const resolved = await resolveIsolatedKey(
+      const resolved = await resolveConnectionKey(
         data.apiKey,
         clientId,
         client.company,
+        accountMode,
       );
       if (!Number.isSafeInteger(resolved.providerId) || resolved.providerId < 1)
         throw new AppError(502, "The Manyreach account identity is invalid.");
@@ -180,7 +203,7 @@ export async function queueOnboarding(
         );
       providerId = resolved.providerId;
       providerType = resolved.providerType;
-      isolatedKey = resolved.apiKey;
+      connectionKey = resolved.apiKey;
       const assigned = await db.manyreachClientspace.findUnique({
         where: {
           providerType_providerId: {
@@ -192,22 +215,22 @@ export async function queueOnboarding(
       if (assigned && assigned.clientId !== clientId)
         throw new AppError(
           409,
-          "This clientspace is already assigned to another client.",
+          "This Manyreach account is already assigned to another workspace.",
         );
     }
     if (!providerId)
       throw new AppError(422, "Enter the client's Manyreach API key.");
     return db.$transaction(async (tx) => {
-      if (isolatedKey)
+      if (connectionKey)
         await tx.manyreachClientspace.upsert({
           where: { clientId },
           create: {
             clientId,
             providerId: providerId!,
             providerType,
-            encryptedApiKey: encrypt(isolatedKey),
+            encryptedApiKey: encrypt(connectionKey),
           },
-          update: { encryptedApiKey: encrypt(isolatedKey), lastError: null },
+          update: { encryptedApiKey: encrypt(connectionKey), lastError: null },
         });
       const job = await tx.backgroundJob.create({
         data: {

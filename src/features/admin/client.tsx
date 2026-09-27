@@ -133,7 +133,11 @@ export function ClientDetail({ id }: { id: string }) {
             Package updates apply to the next protected request.
           </p>
         </div>
-        <ClientSync clientId={id} connected={!!c.mapping} />
+        <ClientSync
+          clientId={id}
+          connected={!!c.mapping}
+          providerType={c.mapping?.providerType}
+        />
       </div>
       <div className="section-title section-space">
         <h2>Members</h2>
@@ -249,7 +253,7 @@ export function ClientDetail({ id }: { id: string }) {
           >
             <p className="muted">
               {c.mapping
-                ? "Enter a new key for the currently mapped clientspace. It will be verified before replacing the stored key."
+                ? "Enter a new key for the connected Manyreach account. It will be verified before replacing the stored key."
                 : "Enter this client's isolated clientspace ID and key. The connection will be verified before saving."}
             </p>
             {!c.mapping && (
@@ -259,7 +263,9 @@ export function ClientDetail({ id }: { id: string }) {
               </label>
             )}
             <label>
-              Clientspace API key
+              {c.mapping?.providerType === "organization"
+                ? "Main Manyreach API key"
+                : "Workspace / clientspace API key"}
               <input
                 name="apiKey"
                 type="password"

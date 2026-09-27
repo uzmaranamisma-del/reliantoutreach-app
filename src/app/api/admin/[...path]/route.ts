@@ -55,7 +55,11 @@ export const GET = endpoint(async (request, context) => {
           serviceType: "EMAIL",
           ...(url.searchParams.get("purpose") === "onboarding"
             ? {}
-            : { serviceType: "EMAIL", active: true, requiresLimitReview: false }),
+            : {
+                serviceType: "EMAIL",
+                active: true,
+                requiresLimitReview: false,
+              }),
         },
         select: {
           id: true,
@@ -122,7 +126,12 @@ export const GET = endpoint(async (request, context) => {
         permissions: true,
         limits: true,
         mapping: {
-          select: { providerId: true, lastSyncAt: true, lastError: true },
+          select: {
+            providerId: true,
+            providerType: true,
+            lastSyncAt: true,
+            lastError: true,
+          },
         },
         memberships: {
           include: { user: { select: { id: true, email: true, name: true } } },
@@ -160,7 +169,9 @@ export const GET = endpoint(async (request, context) => {
         orderBy: { createdAt: "desc" },
         include: {
           package: { select: { name: true } },
-          mapping: { select: { lastSyncAt: true, lastError: true } },
+          mapping: {
+            select: { providerType: true, lastSyncAt: true, lastError: true },
+          },
           _count: { select: { memberships: true } },
         },
       }),

@@ -80,7 +80,7 @@ it.each([
     vi.mocked(providerRequest).mockResolvedValue(account);
     await expect(
       rotateConnection("admin", "tenant-A", { apiKey: "test-only-key" }),
-    ).rejects.toThrow("exact isolated clientspace");
+    ).rejects.toThrow("exact connected Manyreach account");
     expect(db.manyreachClientspace.update).not.toHaveBeenCalled();
   },
 );

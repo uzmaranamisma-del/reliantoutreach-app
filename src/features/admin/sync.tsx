@@ -8,17 +8,25 @@ import { useLive } from "@/features/portal/hooks";
 export function ClientSync({
   clientId,
   connected,
+  providerType,
 }: {
   clientId: string;
   connected: boolean;
+  providerType?: string;
 }) {
   const q = useLive(`/api/admin/clients/${clientId}/sync`, 5),
     cache = useQueryClient();
   const [apiKey, setApiKey] = useState(""),
+    [selectedMode, setSelectedMode] = useState("subaccount"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [key, setKey] = useState(() => crypto.randomUUID());
   const state = q.data;
+  const accountMode = connected
+    ? providerType === "organization"
+      ? "main"
+      : "subaccount"
+    : selectedMode;
   const inFlight = useRef(false);
   const { refetch, dataUpdatedAt } = q;
   const working =
@@ -66,7 +74,8 @@ export function ClientSync({
     <section className="panel content-panel">
       <h2>Manyreach connection & invitation</h2>
       <p>
-        Connect this clientspace, sync its data, then send the owner invitation.
+        Connect a Manyreach account, sync its data, then send the owner
+        invitation.
       </p>
       <form
         onSubmit={async (e) => {
@@ -76,6 +85,7 @@ export function ClientSync({
           try {
             await api(`/api/admin/clients/${clientId}/sync`, {
               key,
+              accountMode,
               ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
             });
             setApiKey("");
@@ -89,7 +99,21 @@ export function ClientSync({
         }}
       >
         <label>
-          Manyreach workspace / clientspace API key
+          Account type
+          <select
+            name="accountMode"
+            value={accountMode}
+            disabled={connected || working || busy}
+            onChange={(event) => setSelectedMode(event.target.value)}
+          >
+            <option value="subaccount">Workspace / clientspace</option>
+            <option value="main">Main Manyreach account</option>
+          </select>
+        </label>
+        <label>
+          {accountMode === "main"
+            ? "Main Manyreach API key"
+            : "Manyreach workspace / clientspace API key"}
           <input
             type="password"
             autoComplete="off"
@@ -99,16 +123,24 @@ export function ClientSync({
             placeholder={
               connected
                 ? "Saved securely — leave blank to reuse"
-                : "Paste this client's API key"
+                : accountMode === "main"
+                  ? "Paste the main account API key"
+                  : "Paste this client's API key"
             }
             required={!connected}
             disabled={working || busy}
           />
         </label>
         <p className="muted small">
-          You may use this client&apos;s isolated Workspace or Clientspace key.
-          An agency key searches both account types and requires one exact name
-          match for this client.
+          {accountMode === "main" ? (
+            "Sync the main account’s own campaigns, prospects, lists, senders and replies. Other workspaces are not imported. This workspace’s members will have access to the main account data."
+          ) : (
+            <>
+              You may use this client&apos;s isolated Workspace or Clientspace
+              key. An agency key searches both account types and requires one
+              exact name match for this client.
+            </>
+          )}
         </p>
         {state && !state.smtpConfigured && (
           <p className="notice">

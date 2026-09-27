@@ -22,6 +22,7 @@ export function Clients() {
   const [page, setPage] = useState(1),
     [search, setSearch] = useState(""),
     [create, setCreate] = useState(false),
+    [createMode, setCreateMode] = useState<"main" | "subaccount">("subaccount"),
     [selectedIds, setSelectedIds] = useState<string[]>([]),
     [deleting, setDeleting] = useState(false),
     [deleteError, setDeleteError] = useState("");
@@ -61,7 +62,12 @@ export function Clients() {
   async function updateSelectedStatus(status: "ACTIVE" | "SUSPENDED") {
     if (!selectedIds.length || deleting) return;
     const label = status === "ACTIVE" ? "reactivate" : "suspend";
-    if (!window.confirm(`${label[0].toUpperCase() + label.slice(1)} ${selectedIds.length} selected client${selectedIds.length === 1 ? "" : "s"}?`)) return;
+    if (
+      !window.confirm(
+        `${label[0].toUpperCase() + label.slice(1)} ${selectedIds.length} selected client${selectedIds.length === 1 ? "" : "s"}?`,
+      )
+    )
+      return;
     setDeleting(true);
     setDeleteError("");
     try {
@@ -86,7 +92,22 @@ export function Clients() {
         description="Manage every client from one place."
       >
         <Refresh onClick={() => q.refetch()} />
-        <Button onClick={() => setCreate(true)}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setCreateMode("main");
+            setCreate(true);
+          }}
+        >
+          <Plus size={16} />
+          Add main account
+        </Button>
+        <Button
+          onClick={() => {
+            setCreateMode("subaccount");
+            setCreate(true);
+          }}
+        >
           <Plus size={16} />
           Create client
         </Button>
@@ -100,7 +121,12 @@ export function Clients() {
             onChange={(event) =>
               setSelectedIds(
                 event.target.checked
-                  ? Array.from(new Set([...selectedIds, ...rows.map((row: any) => row.id)]))
+                  ? Array.from(
+                      new Set([
+                        ...selectedIds,
+                        ...rows.map((row: any) => row.id),
+                      ]),
+                    )
                   : selectedIds.filter(
                       (id) => !rows.some((row: any) => row.id === id),
                     ),
@@ -110,17 +136,34 @@ export function Clients() {
           Select all visible
         </label>
         <span className="muted small">
-          {selectedIds.length ? `${selectedIds.length} selected` : "Select clients for bulk actions"}
+          {selectedIds.length
+            ? `${selectedIds.length} selected`
+            : "Select clients for bulk actions"}
         </span>
         {selectedIds.length > 0 && (
           <>
-            <Button size="sm" variant="outline" disabled={deleting} onClick={() => updateSelectedStatus("ACTIVE")}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={deleting}
+              onClick={() => updateSelectedStatus("ACTIVE")}
+            >
               Reactivate
             </Button>
-            <Button size="sm" variant="outline" disabled={deleting} onClick={() => updateSelectedStatus("SUSPENDED")}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={deleting}
+              onClick={() => updateSelectedStatus("SUSPENDED")}
+            >
               Suspend
             </Button>
-            <Button variant="destructive" size="sm" disabled={deleting} onClick={deleteSelected}>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={deleting}
+              onClick={deleteSelected}
+            >
               <Trash2 size={15} />
               {deleting ? "Working…" : "Delete selected"}
             </Button>
@@ -163,6 +206,16 @@ export function Clients() {
           },
           { key: "email", label: "Owner email" },
           {
+            key: "accountType",
+            label: "Account type",
+            render: (r: any) =>
+              r.mapping?.providerType === "organization"
+                ? "Main account"
+                : r.mapping
+                  ? "Workspace / clientspace"
+                  : "Not connected",
+          },
+          {
             key: "package",
             label: "Package",
             render: (r: any) => r.package.name,
@@ -199,10 +252,15 @@ export function Clients() {
       <Modal
         open={create}
         onOpenChange={setCreate}
-        title="Create a client workspace"
+        title={
+          createMode === "main"
+            ? "Add main Manyreach account"
+            : "Create a client workspace"
+        }
         wide
       >
         <ClientWizard
+          initialAccountMode={createMode}
           onDone={(id) => {
             router.push(`/admin/clients/${id}`);
           }}
@@ -212,13 +270,20 @@ export function Clients() {
   );
 }
 
-export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
+export function ClientWizard({
+  onDone,
+  initialAccountMode = "subaccount",
+}: {
+  onDone: (id: string) => void;
+  initialAccountMode?: "main" | "subaccount";
+}) {
   const packages = useLive("/api/admin/packages/options?purpose=onboarding");
   const [step, setStep] = useState(0),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [createdId, setCreatedId] = useState(""),
     [apiKey, setApiKey] = useState(""),
+    [accountMode, setAccountMode] = useState(initialAccountMode),
     [key] = useState(() => crypto.randomUUID());
   const [form, setForm] = useState<any>({
     company: "",
@@ -268,6 +333,7 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
         await api(`/api/admin/clients/${id}/sync`, {
           key,
           apiKey: apiKey.trim(),
+          accountMode,
         });
       setApiKey("");
       onDone(id);
@@ -294,6 +360,12 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
         <h2>{labels[step]}</h2>
         {step === 0 && (
           <div className="form-grid">
+            {accountMode === "main" && (
+              <p className="notice">
+                Enter your own company and owner email for the main account
+                workspace.
+              </p>
+            )}
             {[
               ["company", "Company"],
               ["firstName", "First name"],
@@ -420,21 +492,47 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
               <Mail />
             </div>
             <label>
-              Manyreach workspace / clientspace API key
+              Account type
+              <select
+                name="accountMode"
+                value={accountMode}
+                disabled={busy}
+                onChange={(event) =>
+                  setAccountMode(event.target.value as "main" | "subaccount")
+                }
+              >
+                <option value="subaccount">Workspace / clientspace</option>
+                <option value="main">Main Manyreach account</option>
+              </select>
+            </label>
+            <label>
+              {accountMode === "main"
+                ? "Main Manyreach API key"
+                : "Manyreach workspace / clientspace API key"}
               <input
                 name="manyreachApiKey"
                 type="password"
                 autoComplete="off"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Paste this client's isolated API key"
+                placeholder={
+                  accountMode === "main"
+                    ? "Paste the main account API key"
+                    : "Paste this client's isolated API key"
+                }
               />
             </label>
             <p className="muted">
-              Use the isolated workspace or clientspace key, or an agency key
-              when the Manyreach Workspace or Clientspace name exactly matches
-              this client. Campaigns, prospects, lists, senders and replies are
-              checked before the owner invitation is queued.
+              {accountMode === "main" ? (
+                "Use the main account API key to sync its own campaigns, prospects, lists, senders and replies. Other workspaces are not imported. The owner and members of this workspace will have access to the main account data."
+              ) : (
+                <>
+                  Use the isolated workspace or clientspace key, or an agency
+                  key when the Manyreach Workspace or Clientspace name exactly
+                  matches this client. Campaigns, prospects, lists, senders and
+                  replies are checked before the owner invitation is queued.
+                </>
+              )}
             </p>
             {createdId && (
               <p className="notice">
@@ -473,7 +571,7 @@ export function ClientWizard({ onDone }: { onDone: (id: string) => void }) {
                     form.country.trim().length >= 2
                   )
                 : step === 1 &&
-                    (!current || packages.isLoading || !!packages.error)
+                  (!current || packages.isLoading || !!packages.error)
             }
           >
             Continue

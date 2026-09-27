@@ -26,13 +26,12 @@ export async function rotateConnection(
     `${providerType}:${providerId}`,
     "/account",
   );
-  if (
-    Number(account.id) !== providerId ||
-    String(account.keyType).toLowerCase() !== providerType
-  )
+  const keyType = String(account.keyType).toLowerCase();
+  const verifiedType = keyType === "agency" ? "organization" : keyType;
+  if (Number(account.id) !== providerId || verifiedType !== providerType)
     throw new AppError(
       422,
-      "The key must belong to this exact isolated clientspace.",
+      "The key must belong to this exact connected Manyreach account.",
     );
   await db.$transaction(async (tx) => {
     if (mapping)
