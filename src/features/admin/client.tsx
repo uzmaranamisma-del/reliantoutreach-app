@@ -22,6 +22,7 @@ export function ClientDetail({ id }: { id: string }) {
     packages = useLive("/api/admin/packages/options"),
     [dialog, setDialog] = useState(""),
     [error, setError] = useState(""),
+    [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [packageId, setPackageId] = useState(""),
     [member, setMember] = useState<any>();
@@ -31,6 +32,7 @@ export function ClientDetail({ id }: { id: string }) {
     setError("");
     try {
       await api(`/api/admin/clients/${id}/${name}`, data);
+      if (name === "pause-campaigns") setNotice("Campaign pause queued. Check Jobs for completion before assuming outreach has stopped.");
       if (name === "impersonate") {
         // Full navigation clears administrator queries when changing tenant context.
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination
@@ -87,6 +89,10 @@ export function ClientDetail({ id }: { id: string }) {
         )}
       </PageTitle>
       {error && <ErrorBox error={error} />}
+      {notice && <p className="notice">{notice} <Link href="/admin/jobs">View jobs</Link></p>}
+      {c.mapping && <p className="notice">Suspending access does not stop existing outreach. <Button variant="outline" disabled={busy} onClick={() => {
+        if (window.confirm("Pause all running, scheduled and preparing campaigns in this connected Manyreach account? This will change live campaigns after background processing.")) action("pause-campaigns", { confirm: true, key: crypto.randomUUID() });
+      }}>Pause live campaigns</Button></p>}
       {c.status === "DRAFT" && (
         <div className="notice">
           <strong>Inactive client draft</strong>

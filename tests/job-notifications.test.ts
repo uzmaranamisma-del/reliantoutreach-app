@@ -53,7 +53,7 @@ it("keeps successful syncs in history silently while failures and imports still 
     }),
   );
 });
-it("does not resend a job notification when the processor runs again", async () => {
+it("recovers outbox enqueue after history was saved, using the same deduplication tag", async () => {
   vi.mocked(db.backgroundJob.findMany).mockResolvedValue([
     {
       id: "job-1",
@@ -67,6 +67,6 @@ it("does not resend a job notification when the processor runs again", async () 
     id: "job:job-1",
   } as any);
   await syncJobNotifications();
-  expect(sendPushNotification).not.toHaveBeenCalled();
+  expect(sendPushNotification).toHaveBeenCalledWith("a", expect.objectContaining({ tag: "job:job-1" }));
   expect(db.notification.create).not.toHaveBeenCalled();
 });

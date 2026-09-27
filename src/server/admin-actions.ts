@@ -124,6 +124,7 @@ export async function changeMember(
       where: { id: member.id },
       data: { role: data.role, disabled: data.disabled },
     });
+    if (data.disabled) await tx.pushSubscription.deleteMany({ where: { clientId, userId: member.userId } });
     await tx.auditLog.create({
       data: {
         actorId,

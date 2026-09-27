@@ -2,7 +2,7 @@ CREATE TABLE `PushSubscription` (
     `id` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
     `clientId` VARCHAR(191) NOT NULL,
-    `endpoint` VARCHAR(768) NOT NULL,
+    `endpoint` VARCHAR(768) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     `p256dh` VARCHAR(200) NOT NULL,
     `auth` VARCHAR(200) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),

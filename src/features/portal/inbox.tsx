@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Check, MessageSquare, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useContext, useLive } from "./hooks";
+import { draftKey, groupConversations } from "@/lib/conversations";
 
 export function Inbox() {
   const { data: ctx } = useContext(),
@@ -41,8 +42,18 @@ export function Inbox() {
     `/api/portal/inbox?page=${page}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}${filter ? `&status=${filter}` : ""}`,
     ctx?.poll.inbox || 15,
   );
+  const draftStorageKey = ctx?.userId && ctx?.clientId && selected?.fromEmail
+    ? draftKey(ctx.userId, ctx.clientId, selected.fromEmail) : undefined;
+  function saveDraft(value: string) {
+    setBody(value);
+    if (!draftStorageKey) return;
+    try {
+      if (value) localStorage.setItem(draftStorageKey, JSON.stringify({ body: value, at: Date.now() }));
+      else localStorage.removeItem(draftStorageKey);
+    } catch { setError("Draft could not be saved on this device. Keep this chat open until sent."); }
+  }
   const history = useQuery({
-    queryKey: ["thread", selected?.fromEmail, historyCursor],
+    queryKey: ["thread", ctx?.clientId, selected?.fromEmail, historyCursor],
     queryFn: () =>
       api(
         `/api/portal/inbox/thread?email=${encodeURIComponent(selected.fromEmail)}&cursor=${encodeURIComponent(historyCursor)}`,
@@ -53,7 +64,7 @@ export function Inbox() {
       : Math.max(10, ctx?.poll.inbox || 15) * 1000,
   });
   const meta = useQuery({
-    queryKey: ["conversation-meta", selected?.fromEmail],
+    queryKey: ["conversation-meta", ctx?.clientId, selected?.fromEmail],
     queryFn: () =>
       api(
         `/api/portal/inbox/meta?email=${encodeURIComponent(selected.fromEmail)}`,
@@ -81,15 +92,25 @@ export function Inbox() {
   }, [selected?.fromEmail, history.dataUpdatedAt, historyCursor]);
   useEffect(() => {
     const record = meta.data?.meta;
-    if (!record) return;
     setMetaForm({
-      status: record.status || "OPEN",
-      tags: Array.isArray(record.tags) ? record.tags.join(", ") : "",
-      notes: record.notes || "",
-      assigneeId: record.assigneeId || "",
+      status: record?.status || "OPEN",
+      tags: Array.isArray(record?.tags) ? record.tags.join(", ") : "",
+      notes: record?.notes || "",
+      assigneeId: record?.assigneeId || "",
     });
     setMetaError("");
-  }, [meta.data]);
+  }, [meta.data, selected?.fromEmail]);
+  useEffect(() => {
+    let value = "";
+    try {
+      const saved = draftStorageKey && localStorage.getItem(draftStorageKey);
+      const draft = saved ? JSON.parse(saved) : undefined;
+      if (draft && Date.now() - draft.at < 7 * 86400000) value = draft.body || "";
+      else if (draftStorageKey) localStorage.removeItem(draftStorageKey);
+    } catch { /* A missing or damaged draft must not block the inbox. */ }
+    setBody(value);
+    setError("");
+  }, [draftStorageKey]);
   async function saveMeta() {
     if (!selected) return;
     setMetaBusy(true);
@@ -171,12 +192,7 @@ export function Inbox() {
           ) : q.isLoading ? (
             <Loading />
           ) : q.data?.items.length ? (
-            [...q.data.items]
-              .sort(
-                (a: any, b: any) =>
-                  new Date(b.createdAt).getTime() -
-                  new Date(a.createdAt).getTime(),
-              )
+            groupConversations(q.data.items)
               .map((m: any) => (
                 <button
                   className={`conversation ${selected?.fromEmail === m.fromEmail ? "selected" : ""}`}
@@ -185,7 +201,6 @@ export function Inbox() {
                     setSelected(m);
                     followLatest.current = true;
                     setHistoryCursor("");
-                    setBody("");
                     setReplyKey(crypto.randomUUID());
                   }}
                 >
@@ -253,7 +268,7 @@ export function Inbox() {
                 <p>{selected.fromEmail}</p>
                 <details className="conversation-options">
                   <summary>Conversation details</summary>
-                  <div className="conversation-controls">
+                  <fieldset className="conversation-controls" disabled={!ctx?.permissions["inbox.manage"] || meta.isLoading || metaBusy} style={{ border: 0, padding: 0, margin: 0 }}>
                     <Field
                       name="conversation-status"
                       label="Status"
@@ -312,13 +327,13 @@ export function Inbox() {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={metaBusy || meta.isLoading}
+                      disabled={metaBusy || meta.isLoading || !ctx?.permissions["inbox.manage"]}
                       onClick={saveMeta}
                     >
                       <Check size={14} />
                       {metaBusy ? "Saving…" : "Save conversation"}
                     </Button>
-                  </div>
+                  </fieldset>
                 </details>
               </div>
               <div
@@ -392,7 +407,7 @@ export function Inbox() {
                     id="reply"
                     value={body}
                     onChange={(e) => {
-                      setBody(e.target.value);
+                      saveDraft(e.target.value);
                       setReplyKey(crypto.randomUUID());
                     }}
                     onKeyDown={(e) => {
@@ -405,6 +420,7 @@ export function Inbox() {
                     placeholder="Write a message… (Ctrl+Enter to send)"
                   />
                   {error && <ErrorBox error={error} />}
+                  <small className="muted">Drafts stay on this device for 7 days and are cleared on sign out.</small>
                   <div className="form-actions">
                     <Button
                       disabled={!body.trim() || busy}
@@ -451,7 +467,7 @@ export function Inbox() {
                   confirm: true,
                   key: replyKey,
                 });
-                setBody("");
+                saveDraft("");
                 setReplyKey(crypto.randomUUID());
                 setConfirm(false);
                 history.refetch();

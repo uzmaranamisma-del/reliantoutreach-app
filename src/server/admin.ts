@@ -331,6 +331,9 @@ export async function deleteClients(actorId: string, input: unknown) {
         tx.mutationReceipt.deleteMany({ where: { clientId: { in: ids } } }),
         tx.backgroundJob.deleteMany({ where: { clientId: { in: ids } } }),
         tx.apiLog.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.replyEvent.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.replyScan.deleteMany({ where: { clientId: { in: ids } } }),
+        tx.appSetting.deleteMany({ where: { key: { in: ids.map(id => `usage.scan:${id}`) } } }),
       ]);
       await tx.auditLog.createMany({
         data: clients.map((client) => ({

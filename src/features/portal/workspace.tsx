@@ -133,7 +133,7 @@ export function Usage() {
           </p>
           <div className="usage-grid">
             {Object.entries(q.data.limits).map(([key, value]) => {
-              const used = q.data.snapshot?.values?.[key];
+              const used = key === "monthlyEmails" ? q.data.monthly?.values?.monthlyEmails : q.data.snapshot?.values?.[key];
               return (
                 <div className="panel usage-card" key={key}>
                   <h3>{key.replace(/([A-Z])/g, " $1")}</h3>
@@ -155,13 +155,15 @@ export function Usage() {
                   </div>
                   <small>
                     {key === "monthlyEmails"
-                      ? "Monthly sending is unavailable for capped packages."
+                      ? "Managed allowance, not an automatic cutoff. Provider credits and sending limits still apply."
                       : key === "csvRows"
                         ? "Maximum rows per import."
                         : used === undefined
                           ? "Awaiting a usage snapshot."
                           : "Latest synchronized usage."}
                   </small>
+                  {key === "monthlyEmails" && <small>Campaign statistics through {q.data.monthly?.values?.through ? new Date(q.data.monthly.values.through).toLocaleString() : "first completed collection pending"} (UTC month). Manual replies may not be included.</small>}
+                  {key === "monthlyEmails" && Number(value) > 0 && used >= Number(value) * 0.8 && <p className="notice">{used >= Number(value) ? "Monthly allowance reached." : "Approaching your monthly allowance."} Contact your administrator to review usage. Sending remains enabled.</p>}
                 </div>
               );
             })}

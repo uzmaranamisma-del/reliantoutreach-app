@@ -1,5 +1,23 @@
 # Backup and recovery
 
+## Encrypted export and isolated restore tooling
+
+Run from a trusted machine with the official MySQL CLI installed and access to the database. Set `BACKUP_ENCRYPTION_KEY` to a separate 64-character random hex secret, kept in a password manager. `MYSQLDUMP_PATH` and `MYSQL_PATH` may contain absolute executable paths. No password is placed in process arguments or logs.
+
+```sh
+node scripts/backup.mjs create /secure-backups/outreach-YYYY-MM-DD.robackup
+```
+
+The export uses a consistent transaction, gzip and AES-256-GCM. SQL remains in memory; the output is encrypted. The tool refuses to overwrite an existing backup. Maximum uncompressed export size is 512 MiB; larger databases require a streaming/provider backup workflow. Schedule this command on a trusted always-on host or use Hostinger's managed database backups; the application HTTP cron does not run the export.
+
+For a drill, create a NEW EMPTY database with a name ending in `_restore_test`, put its connection in `RESTORE_DATABASE_URL`, then run:
+
+```sh
+node scripts/backup.mjs restore-test /secure-backups/outreach-YYYY-MM-DD.robackup
+```
+
+Authentication of the encrypted archive completes before any SQL is restored. The tool rejects a populated target and the original database. Never attach an active mail/Manyreach worker to the restored database until queued external side effects are reconciled. A local fixture backup/restore drill was completed on September 27; production backup scheduling remains an account-level verification item.
+
 ## Back up before migrations
 
 Use hPanel's backup facilities for the hosting account and export the application MySQL database separately through phpMyAdmin. Select the dedicated application database, choose Export, SQL format, and include structure and data. For a larger database, use the hosting provider's supported export process rather than an HTTP export that may time out.

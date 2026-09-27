@@ -5,6 +5,23 @@ on:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: isolated-ci-only
+          MYSQL_DATABASE: outreach_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pisolated-ci-only"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      DATABASE_URL: mysql://root:isolated-ci-only@127.0.0.1:3306/outreach_ci
+      AUTH_SECRET: ci-only-auth-secret-never-use-in-production-123456
+      ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      E2E_DATABASE_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -13,9 +30,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:generate
+      - run: npm run db:deploy
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
-      - run: npm run build
+      - run: npm run build:app
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

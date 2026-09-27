@@ -28,7 +28,9 @@ import { createInvitation } from "@/server/invitations";
 import { withLease } from "@/lib/locks";
 import { queueEnrollment } from "@/server/enrollment";
 import { forClient } from "@/lib/manyreach/client";
-import { pushConfigured } from "@/server/push";
+import { pushConfigured, sendPushNotification } from "@/server/push";
+import { validatePushEndpoint } from "@/lib/push-endpoint";
+import { rateLimit } from "@/lib/locks";
 const resources = ["campaigns", "prospects", "lists", "senders"];
 
 const senderImportRequired = [
@@ -181,6 +183,8 @@ export const GET = endpoint(async (request, context) => {
     const ctx = await tenant(request);
     return {
       name: ctx.user.name,
+      userId: ctx.user.id,
+      clientId: ctx.client.id,
       email: ctx.user.email,
       company: ctx.client.company,
       role: ctx.role,
@@ -197,10 +201,13 @@ export const GET = endpoint(async (request, context) => {
     };
   }
   if (section === "push") {
-    await tenant(request);
+    const ctx = await tenant(request, "inbox.view");
     return {
       configured: pushConfigured(),
       publicKey: process.env.VAPID_PUBLIC_KEY || null,
+      impersonating: ctx.impersonating && !(await db.clientMembership.findFirst({ where: { userId: ctx.user.id, clientId: ctx.client.id, disabled: false } })),
+      devices: await db.pushSubscription.findMany({ where: { userId: ctx.user.id, clientId: ctx.client.id }, select: { id: true, createdAt: true, updatedAt: true, sessionId: true } }).then(rows => rows.map(({ sessionId, ...row }) => ({ ...row, current: sessionId === ctx.session.id }))),
+      scan: await db.replyScan.findUnique({ where: { clientId: ctx.client.id }, select: { lastScanAt: true, lastError: true } }),
     };
   }
   const ctx = await tenant(request);
@@ -250,14 +257,15 @@ export const GET = endpoint(async (request, context) => {
     const [items, total, unread] = await Promise.all([
       db.notification.findMany({
         where,
+        include: { reads: { where: { userId: ctx.user.id } } },
         take: 25,
         skip: (page - 1) * 25,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       }),
       db.notification.count({ where }),
-      db.notification.count({ where: { ...where, readAt: null } }),
+      db.notification.count({ where: { ...where, reads: { none: { userId: ctx.user.id } } } }),
     ]);
-    return { items, total, unread };
+    return { items: items.map(({ reads, ...item }) => ({ ...item, readAt: reads[0]?.readAt || null })), total, unread };
   }
   if (section === "overview") {
     const snapshot = await db.usageSnapshot.findUnique({
@@ -277,6 +285,7 @@ export const GET = endpoint(async (request, context) => {
   }
   if (section === "usage")
     return {
+      monthly: await db.usageSnapshot.findUnique({ where: { clientId_period: { clientId: ctx.client.id, period: `month:${new Date().toISOString().slice(0, 7)}` } } }),
       package: ctx.client.package.name,
       billingLabel: ctx.client.package.billingLabel,
       plan: {
@@ -346,7 +355,20 @@ export const POST = endpoint(async (request, context) => {
   const [section, id, action] = path;
   const input = await json(request, section === "imports" ? 3_000_000 : 128000);
   if (section === "push") {
-    const ctx = await tenant(request);
+    const ctx = await tenant(request, "inbox.view");
+    if (ctx.impersonating && !(await db.clientMembership.findFirst({ where: { userId: ctx.user.id, clientId: ctx.client.id, disabled: false } }))) throw new AppError(403, "Open your own workspace to register notifications.");
+    await rateLimit(`push-register:${ctx.user.id}`, 20);
+    if (input.action === "remove-device") {
+      await db.pushSubscription.deleteMany({ where: { id: z.string().parse(input.id), userId: ctx.user.id, clientId: ctx.client.id } });
+      return { ok: true };
+    }
+    if (input.action === "test") {
+      await rateLimit(`push-test:${ctx.user.id}`, 1, 60);
+      const device = await db.pushSubscription.findFirst({ where: { endpoint: z.string().parse(input.endpoint), userId: ctx.user.id, clientId: ctx.client.id, sessionId: ctx.session.id } });
+      if (!device || !pushConfigured()) throw new AppError(422, "Reconnect this device before testing alerts.");
+      await sendPushNotification(ctx.client.id, { title: "Notifications are connected", body: "This is your requested ReliantOutreach test notification.", url: "/app/notifications" }, "inbox.view", device.id);
+      return { ok: true, message: "Test queued. It will arrive on the next background run." };
+    }
     const parsed = z
       .object({
         action: z.enum(["subscribe", "unsubscribe"]),
@@ -371,6 +393,15 @@ export const POST = endpoint(async (request, context) => {
     }
     if (!parsed.keys)
       throw new AppError(422, "Push subscription keys are required.");
+    validatePushEndpoint(parsed.endpoint);
+    if (!/^[A-Za-z0-9_-]+$/.test(parsed.keys.p256dh) || Buffer.from(parsed.keys.p256dh, "base64url").length !== 65 || !/^[A-Za-z0-9_-]+$/.test(parsed.keys.auth) || Buffer.from(parsed.keys.auth, "base64url").length !== 16)
+      throw new AppError(422, "Invalid push encryption keys.");
+    const member = await db.clientMembership.findFirst({ where: { userId: ctx.user.id, clientId: ctx.client.id, disabled: false } });
+    if (!member) throw new AppError(403, "Workspace membership is required.");
+    // A shared browser belongs to the currently signed-in identity only.
+    await db.pushSubscription.deleteMany({ where: { endpoint: parsed.endpoint, userId: { not: ctx.user.id } } });
+    if (await db.pushSubscription.count({ where: { userId: ctx.user.id, endpoint: { not: parsed.endpoint } } }) >= 10)
+      throw new AppError(422, "Remove an old device before adding another (maximum 10).");
     await db.pushSubscription.upsert({
       where: {
         userId_clientId_endpoint: {
@@ -385,9 +416,11 @@ export const POST = endpoint(async (request, context) => {
         endpoint: parsed.endpoint,
         p256dh: parsed.keys.p256dh,
         auth: parsed.keys.auth,
+        sessionId: ctx.session.id,
       },
-      update: { p256dh: parsed.keys.p256dh, auth: parsed.keys.auth },
+      update: { p256dh: parsed.keys.p256dh, auth: parsed.keys.auth, sessionId: ctx.session.id },
     });
+    await db.replyScan.upsert({ where: { clientId: ctx.client.id }, create: { clientId: ctx.client.id }, update: {} });
     return { ok: true };
   }
   if (section === "enrollments") return queueEnrollment(request, input);
@@ -418,15 +451,12 @@ export const POST = endpoint(async (request, context) => {
   }
   if (section === "notifications" && id) {
     const ctx = await tenant(request);
-    const changed = await db.notification.updateMany({
-      where: { id, clientId: ctx.client.id },
-      data: { readAt: new Date() },
-    });
-    if (!changed.count) throw new AppError(404, "Notification not found.");
+    if (!(await db.notification.findFirst({ where: { id, clientId: ctx.client.id } }))) throw new AppError(404, "Notification not found.");
+    await db.notificationRead.upsert({ where: { notificationId_userId: { notificationId: id, userId: ctx.user.id } }, create: { notificationId: id, userId: ctx.user.id }, update: { readAt: new Date() } });
     return { ok: true };
   }
   if (section === "inbox" && id === "meta") {
-    const ctx = await tenant(request, "inbox.view");
+    const ctx = await tenant(request, "inbox.manage");
     const metaInput = z
       .object({
         email: z.email(),
@@ -448,6 +478,7 @@ export const POST = endpoint(async (request, context) => {
       create: { clientId: ctx.client.id, fromEmail: email, status: metaInput.status, tags: metaInput.tags, notes: metaInput.notes, assigneeId: metaInput.assigneeId },
       update: { status: metaInput.status, tags: metaInput.tags, notes: metaInput.notes, assigneeId: metaInput.assigneeId },
     });
+    await db.auditLog.create({ data: { actorId: ctx.user.id, clientId: ctx.client.id, action: "inbox.metadata-updated", resourceId: meta.id } });
     return { meta };
   }
   if (resources.includes(section)) {

@@ -1,5 +1,16 @@
 # Verification report
 
+## September 27 reliability update
+
+- 136 automated tests across 18 files passed, including push authorization, endpoint rejection, stable outbox IDs, retry behavior, reply-ID collection, managed allowances and explicitly queued campaign pauses. Provider writes are mocked.
+- 8 Playwright checks passed on desktop and iPhone-sized Chromium. Authenticated tests use a separate local MySQL database, exercising real login, cross-tenant access rejection, read-only conversation controls, individual notification reads, contact grouping, note reset, drafts and horizontal overflow.
+- All 10 migrations applied to the isolated MySQL test database. The historical push endpoint index required an ASCII-column repair; the forward migration includes that correction for existing databases.
+- Encrypted backup export and restore into a separate empty database passed; all 10 completed migration records survived. Only disposable local restore data was removed.
+- TypeScript, ESLint and production Next.js build passed. No real email, reply, campaign or invitation was sent during these checks.
+- Before deployment, live read-only admin health showed database connected, no recorded cron run and three pending jobs. Hostinger login is required to verify/configure cron and production backup scheduling. Physical-phone push delivery and real SMTP delivery remain unverified.
+
+The entries below are historical, not the current test totals.
+
 Checked on 2026-09-14 and 2026-09-15 on Windows with Node.js 24.18.0.
 
 | Check | Result | Scope |

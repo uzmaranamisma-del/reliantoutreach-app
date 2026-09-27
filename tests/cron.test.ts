@@ -1,4 +1,7 @@
 import { vi, it, expect, beforeEach } from "vitest";
+vi.mock("@/server/reply-alerts", () => ({ collectReplyAlerts: vi.fn().mockResolvedValue({ scanned: 1 }) }));
+vi.mock("@/server/push", () => ({ processPushDeliveries: vi.fn().mockResolvedValue({ delivered: 0 }) }));
+vi.mock("@/server/monthly-usage", () => ({ collectMonthlyUsage: vi.fn().mockResolvedValue({ workspaces: 1 }) }));
 vi.mock("@/server/jobs", () => ({
   processJobs: vi.fn().mockResolvedValue({ processed: 2 }),
   scheduleReconciliation: vi.fn(),

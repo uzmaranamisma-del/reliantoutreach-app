@@ -267,8 +267,7 @@ export function CampaignDetail({ id }: { id: string }) {
         </p>
         {ctx?.limits.monthlyEmails !== -1 && (
           <p className="notice">
-            Sending is unavailable with this package’s monthly cap. Contact your
-            administrator.
+              Your monthly allowance is managed by your administrator. Starting a campaign does not apply an automatic monthly cutoff. Provider credits and sending limits still apply.
           </p>
         )}
         <div className="form-actions">

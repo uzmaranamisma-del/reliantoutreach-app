@@ -29,9 +29,8 @@ export async function syncJobNotifications() {
   for (const job of jobs) {
     const id = `job:${job.id}`;
     const existing = await db.notification.findUnique({ where: { id } });
-    if (existing) continue;
-    const title = `${job.type === "prospect-import" ? "Prospect import / enrollment" : job.type === "reconcile" ? "Workspace sync" : job.type === "client-onboarding" ? "Workspace setup" : "Invitation delivery"}: ${job.status}`;
-    await db.notification.create({
+    const title = `${job.type === "prospect-import" ? "Prospect import / enrollment" : job.type === "reconcile" ? "Workspace sync" : job.type === "pause-campaigns" ? "Campaign pause" : job.type === "client-onboarding" ? "Workspace setup" : "Invitation delivery"}: ${job.status}`;
+    if (!existing) await db.notification.create({
       data: { id, clientId: job.clientId!, title },
     });
     // Routine reconciliation still appears in the notification history, but

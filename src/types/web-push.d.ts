@@ -8,7 +8,7 @@ declare module "web-push" {
     sendNotification(
       subscription: PushSubscription,
       payload?: string,
-      options?: { TTL?: number },
+      options?: { TTL?: number; timeout?: number },
     ): Promise<unknown>;
   };
   const webpush: WebPush;

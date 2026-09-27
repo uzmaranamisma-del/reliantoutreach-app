@@ -1,6 +1,6 @@
 # Hostinger deployment
 
-This application is a **single Node.js Web App**. These instructions do not require a VPS, Docker, Nginx, Redis, PostgreSQL, root access or a separate worker. Deployment has not been performed in the owner's account.
+This application is a **single Node.js Web App**, deployed at https://app.reliantoutreach.com from `uzmaranamisma-del/reliantoutreach-app`. The setup instructions below remain reference material; current checks and limitations are in RELEASE_GATES.md. No VPS, Docker or separate worker is required.
 
 ## 1. Confirm the managed runtime
 
@@ -134,7 +134,7 @@ Make changes on a feature branch, run CI, export the database before schema chan
 | API health error | Agency key/plan; mapping key scope; current provider outage; sanitized status logs |
 | Client sees empty lists after an external edit | Provider UI-to-API updates can lag; use by-ID reads and refetch |
 | 429 response | Wait for the provider cooldown; reduce polling/users on the same clientspace |
-| Monthly capped package cannot start | Intentional fail-closed policy pending strict provider enforcement |
+| Package cannot start | Positive monthly allowances permit starts; check zero entitlement, permissions, senders, prospects and provider credits |
 | Import failed/interrupted | Inspect progress; reconcile with actual prospects before reimporting; failed payloads are removed |
 | Existing campaigns continue after suspension | Suspension is access control; pause running campaigns separately |
 | 403 after redeployment | Verify managed routing in hPanel; Hostinger regenerates managed routing on redeploy |

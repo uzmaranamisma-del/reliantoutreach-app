@@ -14,12 +14,12 @@ import { audit, enforceCapacity } from "@/lib/manyreach/service";
 import { AppError } from "@/lib/errors";
 import { withLease } from "@/lib/locks";
 export function sendingGuard(ctx: Tenant) {
-  // Provider credit allocation is additive; a monthly cap with rollover/downgrade cannot be made strict using the verified API.
-  // Fail closed instead of promising a cap that polling can overrun.
-  if (ctx.limit("monthlyEmails") !== -1)
+  // Owner-approved managed allowance: positive caps do not impose a hard stop.
+  // Zero still represents a package with no email sending entitlement.
+  if (ctx.limit("monthlyEmails") === 0)
     throw new AppError(
       403,
-      "Sending is unavailable with this package’s monthly cap. Please contact your administrator.",
+      "This package does not include email sending. Please contact your administrator.",
       "MONTHLY_CAP_UNAVAILABLE",
     );
 }

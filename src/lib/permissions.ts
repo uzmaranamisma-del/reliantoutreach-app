@@ -14,6 +14,7 @@ export const permissions = [
   "lists.manage",
   "inbox.view",
   "inbox.reply",
+  "inbox.manage",
   "senders.view",
   "senders.create",
   "senders.edit",

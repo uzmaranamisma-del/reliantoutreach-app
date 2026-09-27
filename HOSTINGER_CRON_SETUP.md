@@ -25,6 +25,8 @@ This uses the hosting account's curl command, not a daemon. Do not store the liv
 
 ## Work performed
 
+September 27 update: each invocation first runs a bounded reply collector and the durable push-delivery queue, independently of the regular jobs. It also advances observed monthly campaign usage. Reply collection is based on message IDs, not changes in aggregate counts. Full scans may span multiple invocations for large accounts; use one-minute cron and monitor backlog. Push delivery retries with backoff until its 24-hour expiry. No verified provider webhook is enabled.
+
 - Enqueue reconciliation for up to ten active clients using a persisted cursor and 15-minute deduplication slots.
 - Claim up to five due jobs using conditional database updates, a unique worker token and a processor lease.
 - Send invitation email jobs through SMTP.

@@ -13,7 +13,7 @@ export function Notifications() {
     <>
       <PageTitle
         title="Notifications"
-        description="Import, synchronization and invitation results for your workspace. Acknowledgments are shared by the team."
+        description="Replies and workspace updates. Your read status is private to your account."
       >
         <Refresh onClick={() => q.refetch()} busy={q.isFetching} />
       </PageTitle>

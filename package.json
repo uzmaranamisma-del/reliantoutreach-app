@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/hostinger-build.mjs",
+    "build:app": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -18,7 +19,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "bootstrap": "tsx scripts/bootstrap.ts",
-    "build:hostinger": "prisma migrate deploy && npm run build"
+    "build:hostinger": "node scripts/hostinger-build.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.0",

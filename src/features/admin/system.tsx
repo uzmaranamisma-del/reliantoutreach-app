@@ -33,6 +33,10 @@ export function System() {
               ["Pending jobs", q.data.pendingJobs],
               ["Failed jobs", q.data.failedJobs],
               ["Last cron run", q.data.cron?.value || "Never"],
+              ["Pending push alerts", q.data.pendingPush],
+              ["Expired push alerts", q.data.expiredPush],
+              ["Reply scan errors", q.data.replyScanErrors],
+              ["Oldest queued alert", q.data.oldestPush?.createdAt || "None"],
             ].map(([label, value]) => (
               <div className="panel health-card" key={label}>
                 <span>{label}</span>

@@ -236,6 +236,7 @@ model Notification {
   title String
   readAt DateTime?
   createdAt DateTime @default(now())
+  reads NotificationRead[]
   @@index([clientId,createdAt])
 }
 model PushSubscription {
@@ -245,12 +246,49 @@ model PushSubscription {
   endpoint String @db.VarChar(768)
   p256dh String @db.VarChar(200)
   auth String @db.VarChar(200)
+  sessionId String?
+  deliveries PushDelivery[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   @@unique([userId, clientId, endpoint])
   @@index([clientId])
+}
+model NotificationRead {
+  notificationId String
+  userId String
+  readAt DateTime @default(now())
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  @@id([notificationId, userId])
+}
+model PushDelivery {
+  id String @id @db.VarChar(64)
+  subscriptionId String
+  subscription PushSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  payload Json
+  permission String
+  status String @default("pending")
+  attempts Int @default(0)
+  runAfter DateTime @default(now())
+  expiresAt DateTime
+  lastError String?
+  createdAt DateTime @default(now())
+  @@index([status, runAfter])
+}
+model ReplyScan {
+  clientId String @id
+  enabledAt DateTime @default(now())
+  cursor String? @db.VarChar(1000)
+  lastScanAt DateTime @default(now())
+  lastError String?
+}
+model ReplyEvent {
+  id String @id @db.VarChar(64)
+  clientId String
+  queued Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([queued, createdAt])
 }
 model ConversationMeta {
   id String @id @default(cuid())

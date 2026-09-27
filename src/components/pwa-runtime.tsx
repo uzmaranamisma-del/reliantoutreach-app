@@ -1,101 +1,77 @@
 "use client";
-
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { api } from "@/lib/browser-api";
 
 export function PwaRuntime() {
-  const [ready, setReady] = useState(false);
-  const [permission, setPermission] =
-    useState<NotificationPermission>("default");
-  const [pushConfigured, setPushConfigured] = useState(false);
-
-  useEffect(() => {
-    setReady(true);
-    if ("Notification" in window) setPermission(Notification.permission);
+  const pathname = usePathname();
+  const [permission, setPermission] = useState<string>("loading");
+  const [status, setStatus] = useState("Checking notification connection…");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [config, setConfig] = useState<any>();
+  const load = useCallback(async () => {
+    const value = await api("/api/portal/push");
+    setConfig(value);
+    return value;
   }, []);
-
-  const loadPushConfig = useCallback(async () => {
-    const response = await fetch("/api/portal/push", {
-      credentials: "include",
-      cache: "no-store",
-    });
-    if (!response.ok) return undefined;
-    const config = await response.json();
-    setPushConfigured(Boolean(config.configured && config.publicKey));
-    return config as { configured: boolean; publicKey?: string };
-  }, []);
-
-  const registerPushSubscription = useCallback(async () => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    const config = await loadPushConfig();
-    if (
-      Notification.permission !== "granted" ||
-      !config?.configured ||
-      !config.publicKey
-    )
-      return;
-    const registration = await navigator.serviceWorker.ready;
+  const connect = useCallback(async () => {
+    setError("");
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setStatus("Open the installed app in a supported browser to enable alerts."); return;
+    }
+    const current = await load();
+    if (!current.configured) { setStatus("Notifications need administrator setup."); return; }
+    if (current.impersonating) { setStatus("Sign in to your own workspace to enable alerts."); return; }
+    if (Notification.permission !== "granted") return;
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    await Promise.race([navigator.serviceWorker.ready, new Promise((_, reject) => setTimeout(() => reject(new Error("Notification service is not ready. Reconnect in a moment.")), 10000))]);
     let subscription = await registration.pushManager.getSubscription();
     if (!subscription) {
-      const padding = "=".repeat((4 - (config.publicKey.length % 4)) % 4);
-      const key = Uint8Array.from(
-        atob(
-          (config.publicKey + padding)
-            .replaceAll("-", "+")
-            .replaceAll("_", "/"),
-        ),
-        (char) => char.charCodeAt(0),
-      );
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: key,
-      });
+      const padding = "=".repeat((4 - current.publicKey.length % 4) % 4);
+      const key = Uint8Array.from(atob((current.publicKey + padding).replaceAll("-", "+").replaceAll("_", "/")), c => c.charCodeAt(0));
+      subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
     }
     const json = subscription.toJSON();
-    if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) return;
-    await fetch("/api/portal/push", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "subscribe",
-        endpoint: json.endpoint,
-        keys: json.keys,
-      }),
-    });
-  }, [loadPushConfig]);
-
+    await api("/api/portal/push", { action: "subscribe", endpoint: json.endpoint, keys: json.keys });
+    await load();
+    setStatus("This device is connected. Alerts can arrive while the app is closed.");
+  }, [load]);
   useEffect(() => {
-    loadPushConfig().catch(() => undefined);
-  }, [loadPushConfig]);
-
-  // The service worker delivers alerts in both foreground and background.
-  // UI refreshes only update the page; polling must not create a second alert.
-
-  useEffect(() => {
-    if (permission === "granted")
-      registerPushSubscription().catch(() => undefined);
-  }, [permission, registerPushSubscription]);
-
-  async function enableAlerts() {
-    if (!("Notification" in window)) return;
-    const result = await Notification.requestPermission();
-    setPermission(result);
+    setPermission("Notification" in window ? Notification.permission : "unsupported");
+    connect().catch(e => setError(e.message || "Notification connection failed. Reconnect below."));
+  }, [connect]);
+  async function run(action: () => Promise<void>) {
+    setBusy(true); setError("");
+    try { await action(); } catch (e) { setError((e as Error).message); }
+    finally { setBusy(false); }
   }
-
-  const canNotify = typeof window !== "undefined" && "Notification" in window;
-  if (!ready) return null;
-  if (permission === "granted" || permission === "denied" || !canNotify)
-    return null;
-  return (
-    <div className="pwa-actions" role="status">
-      {permission === "default" &&
-        pushConfigured &&
-        typeof window !== "undefined" &&
-        "Notification" in window && (
-          <button type="button" onClick={enableAlerts}>
-            Enable alerts
-          </button>
-        )}
-    </div>
-  );
+  if (permission === "loading") return null;
+  const detailed = pathname === "/app/notifications";
+  if (!detailed && permission === "granted" && !error) return null;
+  return <section className={detailed ? "panel content-panel" : "pwa-actions"} aria-label="Notification settings" role="status">
+    {detailed && <h2>Notification settings</h2>}
+    {error ? <p role="alert">{error}</p> : detailed && <p>{status}</p>}
+    {permission === "denied" && <p>Notifications are blocked. Allow them in this browser’s site settings, then reconnect.</p>}
+    {permission === "unsupported" && <p>On iPhone, install from Safari → Share → Add to Home Screen, then open the installed app.</p>}
+    {permission !== "unsupported" && <button type="button" disabled={busy || !config?.configured || config?.impersonating} onClick={() => run(async () => {
+      const value = await Notification.requestPermission(); setPermission(value);
+      if (value === "granted") await connect();
+    })}>{busy ? "Connecting…" : permission === "granted" ? "Reconnect alerts" : "Enable alerts"}</button>}
+    {detailed && permission === "granted" && <button type="button" disabled={busy} onClick={() => run(async () => {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) throw new Error("Reconnect this device first.");
+      const result = await api("/api/portal/push", { action: "test", endpoint: subscription.endpoint });
+      setStatus(result.message);
+    })}>Send me a test notification</button>}
+    {detailed && <>
+      <p className="muted">Reply checks run in the background. Delivery depends on cron, network and device settings. Last check: {config?.scan?.lastScanAt ? new Date(config.scan.lastScanAt).toLocaleString() : "Waiting for first run"}. {config?.scan?.lastError}</p>
+      <h3>Your registered devices</h3>
+      {(config?.devices || []).map((device: any, index: number) => <p key={device.id}>Device {index + 1}{device.current ? " · Current login" : ""} · Registered {new Date(device.createdAt).toLocaleDateString()} <button type="button" disabled={busy} onClick={() => run(async () => {
+        await api("/api/portal/push", { action: "remove-device", id: device.id });
+        await load(); setStatus("Device removed. Reconnect on that device to enable alerts again.");
+      })}>Remove</button></p>)}
+    </>}
+  </section>;
 }

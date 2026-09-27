@@ -10,9 +10,9 @@ import {
 import { AppError } from "@/lib/errors";
 import { withLease } from "@/lib/locks";
 import { syncJobNotifications } from "./notifications";
-import { sendPushNotification } from "./push";
 import { onboardingStage } from "./onboarding";
 import { syncDataStage, syncValues } from "./sync-data";
+import { pauseCampaignStage } from "./pause-campaigns";
 import {
   getEffectivePermission,
   getEffectiveLimit,
@@ -255,6 +255,9 @@ export async function processJobs(jobId?: string) {
               },
               180,
             );
+          } else if (job.type === "pause-campaigns") {
+            done = await withLease(`tenant:${job.clientId}`, () => pauseCampaignStage(job.clientId!, job.actorId!, payload));
+            progress = payload.paused || 0;
           } else if (job.type === "reconcile") {
             const client = await db.client.findUniqueOrThrow({
               where: { id: job.clientId! },
@@ -264,19 +267,6 @@ export async function processJobs(jobId?: string) {
             done = await syncDataStage(job.clientId!, payload);
             progress = payload.stage;
             if (done) {
-              const previousSnapshot = await db.usageSnapshot.findUnique({
-                where: {
-                  clientId_period: {
-                    clientId: job.clientId!,
-                    period: "current",
-                  },
-                },
-                select: { values: true },
-              });
-              const previousReplies = Number(
-                (previousSnapshot?.values as { replies?: unknown } | null)
-                  ?.replies ?? 0,
-              );
               const counts = syncValues(
                 payload,
                 await db.clientMembership.count({
@@ -301,20 +291,6 @@ export async function processJobs(jobId?: string) {
                 where: { clientId: job.clientId! },
                 data: { lastSyncAt: new Date(), lastError: null },
               });
-              const currentReplies = Number(counts.replies ?? 0);
-              if (currentReplies > previousReplies) {
-                const delta = currentReplies - previousReplies;
-                try {
-                  await sendPushNotification(job.clientId!, {
-                    title: `${delta} new ${delta === 1 ? "reply" : "replies"}`,
-                    body: "Open Inbox to read the latest prospect message.",
-                    url: "/app/inbox",
-                    tag: `replies:${job.id}`,
-                  });
-                } catch (error) {
-                  console.error("Reply push notification failed", error);
-                }
-              }
             }
           } else throw new AppError(422, "Unknown job type.");
           await db.backgroundJob.updateMany({

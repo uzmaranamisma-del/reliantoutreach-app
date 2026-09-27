@@ -243,7 +243,7 @@ export const GET = endpoint(async (request, context) => {
       }),
     };
   if (section === "system") {
-    let provider = "Error";
+    let provider = process.env.MANYREACH_API_KEY ? "Error" : "Not configured (optional agency key)";
     try {
       await agencyRequest("/account");
       provider = "Connected";
@@ -257,6 +257,10 @@ export const GET = endpoint(async (request, context) => {
         where: { status: { in: ["pending", "retry"] } },
       }),
       failedJobs: await db.backgroundJob.count({ where: { status: "failed" } }),
+      pendingPush: await db.pushDelivery.count({ where: { status: "pending" } }),
+      expiredPush: await db.pushDelivery.count({ where: { status: "expired" } }),
+      replyScanErrors: await db.replyScan.count({ where: { lastError: { not: null } } }),
+      oldestPush: await db.pushDelivery.findFirst({ where: { status: "pending" }, orderBy: { createdAt: "asc" }, select: { createdAt: true, lastError: true } }),
       webhook: "Disabled — authenticity contract unverified",
       logs: await db.apiLog.findMany({
         take: 15,
@@ -374,6 +378,12 @@ export const POST = endpoint(async (request, context) => {
           where: { id },
           data: { status: "SUSPENDED" },
         });
+      } else if (action === "pause-campaigns") {
+        if (data.confirm !== true) throw new AppError(422, "Confirm pausing live campaigns.");
+        const key = z.uuid().parse(data.key);
+        const job = await db.backgroundJob.upsert({ where: { dedupeKey: `pause:${id}:${key}` }, create: { type: "pause-campaigns", clientId: id, actorId: who.user.id, dedupeKey: `pause:${id}:${key}` }, update: {} });
+        await db.auditLog.create({ data: { actorId: who.user.id, clientId: id, action: "campaigns.pause-queued", resourceId: job.id } });
+        return { jobId: job.id };
       } else if (action === "package") {
         const packageId = z.string().min(1).parse(data.packageId);
         if (
@@ -466,6 +476,7 @@ export const POST = endpoint(async (request, context) => {
       throw new AppError(422, "You cannot disable your own account.");
     await db.user.update({ where: { id }, data: { disabled } });
     if (disabled) await db.session.deleteMany({ where: { userId: id } });
+    if (disabled) await db.pushSubscription.deleteMany({ where: { userId: id } });
     await db.auditLog.create({
       data: {
         actorId: who.user.id,
