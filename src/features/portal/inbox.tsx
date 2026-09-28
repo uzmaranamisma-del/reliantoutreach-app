@@ -11,7 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
 import { api } from "@/lib/browser-api";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Check, MessageSquare, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  MessageSquare,
+  Send,
+  ArrowDown,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useContext, useLive } from "./hooks";
 import { draftKey, groupConversations } from "@/lib/conversations";
@@ -28,7 +35,9 @@ export function Inbox() {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [confirm, setConfirm] = useState(false),
+    [showLatest, setShowLatest] = useState(false),
     threadRef = useRef<HTMLDivElement>(null),
+    threadSize = useRef({ width: 0, height: 0 }),
     followLatest = useRef(true),
     [metaForm, setMetaForm] = useState({
       status: "OPEN",
@@ -42,15 +51,25 @@ export function Inbox() {
     `/api/portal/inbox?page=${page}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}${filter ? `&status=${filter}` : ""}`,
     ctx?.poll.inbox || 15,
   );
-  const draftStorageKey = ctx?.userId && ctx?.clientId && selected?.fromEmail
-    ? draftKey(ctx.userId, ctx.clientId, selected.fromEmail) : undefined;
+  const draftStorageKey =
+    ctx?.userId && ctx?.clientId && selected?.fromEmail
+      ? draftKey(ctx.userId, ctx.clientId, selected.fromEmail)
+      : undefined;
   function saveDraft(value: string) {
     setBody(value);
     if (!draftStorageKey) return;
     try {
-      if (value) localStorage.setItem(draftStorageKey, JSON.stringify({ body: value, at: Date.now() }));
+      if (value)
+        localStorage.setItem(
+          draftStorageKey,
+          JSON.stringify({ body: value, at: Date.now() }),
+        );
       else localStorage.removeItem(draftStorageKey);
-    } catch { setError("Draft could not be saved on this device. Keep this chat open until sent."); }
+    } catch {
+      setError(
+        "Draft could not be saved on this device. Keep this chat open until sent.",
+      );
+    }
   }
   const history = useQuery({
     queryKey: ["thread", ctx?.clientId, selected?.fromEmail, historyCursor],
@@ -91,6 +110,21 @@ export function Inbox() {
       });
   }, [selected?.fromEmail, history.dataUpdatedAt, historyCursor]);
   useEffect(() => {
+    const thread = threadRef.current;
+    if (!thread) return;
+    const observer = new ResizeObserver(() => {
+      threadSize.current = {
+        width: thread.clientWidth,
+        height: thread.clientHeight,
+      };
+      if (followLatest.current && !historyCursor) {
+        thread.scrollTop = thread.scrollHeight;
+      }
+    });
+    observer.observe(thread);
+    return () => observer.disconnect();
+  }, [selected?.fromEmail, historyCursor]);
+  useEffect(() => {
     const record = meta.data?.meta;
     setMetaForm({
       status: record?.status || "OPEN",
@@ -105,9 +139,12 @@ export function Inbox() {
     try {
       const saved = draftStorageKey && localStorage.getItem(draftStorageKey);
       const draft = saved ? JSON.parse(saved) : undefined;
-      if (draft && Date.now() - draft.at < 7 * 86400000) value = draft.body || "";
+      if (draft && Date.now() - draft.at < 7 * 86400000)
+        value = draft.body || "";
       else if (draftStorageKey) localStorage.removeItem(draftStorageKey);
-    } catch { /* A missing or damaged draft must not block the inbox. */ }
+    } catch {
+      /* A missing or damaged draft must not block the inbox. */
+    }
     setBody(value);
     setError("");
   }, [draftStorageKey]);
@@ -144,7 +181,7 @@ export function Inbox() {
           <Refresh
             onClick={() => {
               q.refetch();
-              history.refetch();
+              if (selected) history.refetch();
             }}
             busy={q.isFetching}
           />
@@ -192,29 +229,29 @@ export function Inbox() {
           ) : q.isLoading ? (
             <Loading />
           ) : q.data?.items.length ? (
-            groupConversations(q.data.items)
-              .map((m: any) => (
-                <button
-                  className={`conversation ${selected?.fromEmail === m.fromEmail ? "selected" : ""}`}
-                  key={m.id}
-                  onClick={() => {
-                    setSelected(m);
-                    followLatest.current = true;
-                    setHistoryCursor("");
-                    setReplyKey(crypto.randomUUID());
-                  }}
-                >
-                  <span className="conversation-avatar">
-                    {m.fromEmail?.slice(0, 1).toUpperCase()}
-                  </span>
-                  <div>
-                    <strong>{m.fromEmail}</strong>
-                    <b>{m.subject}</b>
-                    <p>{m.preview}</p>
-                    <small>{new Date(m.createdAt).toLocaleString()}</small>
-                  </div>
-                </button>
-              ))
+            groupConversations(q.data.items).map((m: any) => (
+              <button
+                className={`conversation ${selected?.fromEmail === m.fromEmail ? "selected" : ""}`}
+                key={m.id}
+                onClick={() => {
+                  setSelected(m);
+                  setShowLatest(false);
+                  followLatest.current = true;
+                  setHistoryCursor("");
+                  setReplyKey(crypto.randomUUID());
+                }}
+              >
+                <span className="conversation-avatar">
+                  {m.fromEmail?.slice(0, 1).toUpperCase()}
+                </span>
+                <div>
+                  <strong>{m.fromEmail}</strong>
+                  <b>{m.subject}</b>
+                  <p>{m.preview}</p>
+                  <small>{new Date(m.createdAt).toLocaleString()}</small>
+                </div>
+              </button>
+            ))
           ) : (
             <Empty
               title="No replies yet"
@@ -262,13 +299,31 @@ export function Inbox() {
                   onClick={() => setSelected(undefined)}
                 >
                   <ArrowLeft size={18} />
-                  Back to replies
+                  <span>Back to replies</span>
                 </Button>
-                <h2>{selected.subject}</h2>
-                <p>{selected.fromEmail}</p>
+                <div className="chat-identity">
+                  <span className="conversation-avatar">
+                    {selected.fromEmail?.slice(0, 1).toUpperCase()}
+                  </span>
+                  <div>
+                    <h2>{selected.fromEmail}</h2>
+                    <p>{selected.subject}</p>
+                  </div>
+                </div>
                 <details className="conversation-options">
-                  <summary>Conversation details</summary>
-                  <fieldset className="conversation-controls" disabled={!ctx?.permissions["inbox.manage"] || meta.isLoading || metaBusy} style={{ border: 0, padding: 0, margin: 0 }}>
+                  <summary>
+                    <SlidersHorizontal size={17} />
+                    <span>Conversation details</span>
+                  </summary>
+                  <fieldset
+                    className="conversation-controls"
+                    disabled={
+                      !ctx?.permissions["inbox.manage"] ||
+                      meta.isLoading ||
+                      metaBusy
+                    }
+                    style={{ border: 0, padding: 0, margin: 0 }}
+                  >
                     <Field
                       name="conversation-status"
                       label="Status"
@@ -327,7 +382,11 @@ export function Inbox() {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={metaBusy || meta.isLoading || !ctx?.permissions["inbox.manage"]}
+                      disabled={
+                        metaBusy ||
+                        meta.isLoading ||
+                        !ctx?.permissions["inbox.manage"]
+                      }
                       onClick={saveMeta}
                     >
                       <Check size={14} />
@@ -341,11 +400,18 @@ export function Inbox() {
                 ref={threadRef}
                 onScroll={(event) => {
                   const thread = event.currentTarget;
+                  // Resizing for the keyboard is not a request to stop following replies.
+                  if (
+                    thread.clientWidth !== threadSize.current.width ||
+                    thread.clientHeight !== threadSize.current.height
+                  )
+                    return;
                   followLatest.current =
                     thread.scrollHeight -
                       thread.scrollTop -
                       thread.clientHeight <
                     80;
+                  setShowLatest(!followLatest.current);
                 }}
               >
                 <div className="form-actions">
@@ -400,36 +466,57 @@ export function Inbox() {
                   </article>
                 ))}
               </div>
+              {showLatest && (
+                <button
+                  className="jump-latest"
+                  aria-label="Jump to latest message"
+                  onClick={() => {
+                    followLatest.current = true;
+                    setHistoryCursor("");
+                    threadRef.current?.scrollTo({
+                      top: threadRef.current.scrollHeight,
+                      behavior: "smooth",
+                    });
+                  }}
+                >
+                  <ArrowDown size={18} /> Latest
+                </button>
+              )}
               {ctx?.permissions["inbox.reply"] && (
                 <div className="reply-composer">
                   <label htmlFor="reply">Reply to {selected.fromEmail}</label>
-                  <textarea
-                    id="reply"
-                    value={body}
-                    onChange={(e) => {
-                      saveDraft(e.target.value);
-                      setReplyKey(crypto.randomUUID());
-                    }}
-                    onKeyDown={(e) => {
-                      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                        e.preventDefault();
-                        if (body.trim() && !busy) setConfirm(true);
-                      }
-                    }}
-                    rows={3}
-                    placeholder="Write a message… (Ctrl+Enter to send)"
-                  />
-                  {error && <ErrorBox error={error} />}
-                  <small className="muted">Drafts stay on this device for 7 days and are cleared on sign out.</small>
-                  <div className="form-actions">
+                  <div className="composer-input-row">
+                    <textarea
+                      id="reply"
+                      value={body}
+                      onChange={(e) => {
+                        saveDraft(e.target.value);
+                        setReplyKey(crypto.randomUUID());
+                      }}
+                      onKeyDown={(e) => {
+                        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                          e.preventDefault();
+                          if (body.trim() && !busy) setConfirm(true);
+                        }
+                      }}
+                      rows={2}
+                      placeholder="Write a reply…"
+                    />
                     <Button
+                      className="composer-send"
+                      aria-label="Send reply"
+                      title="Send reply (Ctrl+Enter)"
                       disabled={!body.trim() || busy}
                       onClick={() => setConfirm(true)}
                     >
-                      <Send size={15} />
-                      Send reply
+                      <Send size={19} />
+                      <span>Send</span>
                     </Button>
                   </div>
+                  {error && <ErrorBox error={error} />}
+                  <small className="muted composer-note">
+                    Drafts stay on this device · Ctrl+Enter to send
+                  </small>
                 </div>
               )}
             </>

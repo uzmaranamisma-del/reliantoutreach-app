@@ -49,7 +49,7 @@ export function PwaRuntime() {
   if (permission === "loading") return null;
   const detailed = pathname === "/app/notifications";
   if (!detailed && permission === "granted" && !error) return null;
-  return <section className={detailed ? "panel content-panel" : "pwa-actions"} aria-label="Notification settings" role="status">
+  return <section className={detailed ? "panel content-panel notification-settings" : "pwa-actions"} aria-label="Notification settings" role="status">
     {detailed && <h2>Notification settings</h2>}
     {error ? <p role="alert">{error}</p> : detailed && <p>{status}</p>}
     {permission === "denied" && <p>Notifications are blocked. Allow them in this browser’s site settings, then reconnect.</p>}

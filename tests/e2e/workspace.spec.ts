@@ -57,7 +57,11 @@ test("real login, tenant isolation, read-only permission and personal acknowledg
     { id: "alice-new", fromEmail: "alice@example.test", subject: "Latest Alice", createdAt: "2026-09-03", preview: "latest" },
     { id: "bob", fromEmail: "bob@example.test", subject: "Hello Bob", createdAt: "2026-09-02", preview: "hello" },
   ], pagination: { totalItems: 3 } } }));
-  await page.route("**/api/portal/inbox/thread?*", r => r.fulfill({ json: { items: [], pagination: {} } }));
+  await page.route("**/api/portal/inbox/thread?*", r => r.fulfill({ json: { items: Array.from({ length: 18 }, (_, i) => ({
+    id: `message-${i}`, fromEmail: i % 2 ? "team@example.test" : "alice@example.test",
+    createdAt: new Date(Date.UTC(2026, 8, 3, 10, i)).toISOString(),
+    body: `<p>${i === 17 ? "Latest conversation message" : "Thanks for sharing the details. Let us find a good time to discuss the next steps."}</p>`,
+  })), pagination: {} } }));
   await page.goto("/app/inbox");
   await expect(page.locator("button.conversation")).toHaveCount(2);
   await page.getByRole("button", { name: /Latest Alice/ }).click();
@@ -73,4 +77,39 @@ test("real login, tenant isolation, read-only permission and personal acknowledg
   await page.getByRole("button", { name: /Latest Alice/ }).click();
   await expect(page.locator("#reply")).toHaveValue("Saved Alice draft");
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  // Long conversations open at the newest message; replying never requires page scrolling.
+  const details = page.locator(".conversation-options");
+  if (await details.getAttribute("open") !== null) await page.getByText("Conversation details", { exact: true }).click();
+  await expect.poll(() => page.locator(".thread-messages").evaluate(el => Math.round(el.scrollHeight - el.scrollTop - el.clientHeight))).toBeLessThan(5);
+  if (test.info().project.name === "mobile") {
+    for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }, { width: 390, height: 450 }]) {
+      await page.setViewportSize(viewport);
+      await expect(page.getByRole("navigation", { name: "Quick navigation" })).toBeHidden();
+      await expect.poll(async () => {
+        const box = await page.locator("#reply").boundingBox();
+        return !!box && box.y >= 0 && box.y + box.height <= viewport.height;
+      }).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await expect.poll(() => page.locator(".thread-messages").evaluate(el => Math.round(el.scrollHeight - el.scrollTop - el.clientHeight))).toBeLessThan(5);
+      await page.screenshot({ path: `test-results/chat-${viewport.width}-${viewport.height}.png` });
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "Back to replies" }).click();
+    await expect(page.getByRole("navigation", { name: "Quick navigation" })).toBeVisible();
+    await page.getByRole("button", { name: "More navigation" }).click();
+    await expect(page.getByRole("navigation", { name: "Workspace navigation" })).toBeVisible();
+    await page.getByRole("button", { name: "Close menu", exact: true }).click();
+    await page.screenshot({ path: "test-results/inbox-mobile.png" });
+  } else {
+    await page.screenshot({ path: "test-results/inbox-desktop.png" });
+  }
+  await page.route("**/api/portal/overview", r => r.fulfill({ json: { snapshot: { capturedAt: new Date().toISOString(), values: { sentCount: 2480, openCount: 920, replyCount: 126, bounceCount: 8, prospects: 3200, senders: 12, campaigns: 4, lists: 6 } }, activity: [] } }));
+  await page.goto("/app");
+  await expect(page.getByText("2,480", { exact: true }).first()).toBeVisible();
+  const widths = test.info().project.name === "mobile" ? [320, 390, 768] : [1440];
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/dashboard-${width}.png`, fullPage: true });
+  }
 });

@@ -15,7 +15,6 @@ import {
   ChartNoAxesCombined,
   Settings,
   LifeBuoy,
-  ChevronDown,
   Menu,
   LogOut,
   Building2,
@@ -26,6 +25,7 @@ import {
   Clock,
   Layers,
   X,
+  Bell,
 } from "lucide-react";
 import { api } from "@/lib/browser-api";
 import { Button } from "./ui/button";
@@ -94,7 +94,7 @@ export function Shell({
       }
     };
     const resize = () => {
-      if (window.innerWidth > 760) setOpen(false);
+      if (window.innerWidth > 900) setOpen(false);
     };
     window.addEventListener("keydown", close);
     window.addEventListener("resize", resize);
@@ -105,6 +105,20 @@ export function Shell({
       menuButton?.focus();
     };
   }, [open]);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const resize = () =>
+      document.documentElement.style.setProperty(
+        "--app-height",
+        `${viewport?.height || window.innerHeight}px`,
+      );
+    resize();
+    viewport?.addEventListener("resize", resize);
+    return () => {
+      viewport?.removeEventListener("resize", resize);
+      document.documentElement.style.removeProperty("--app-height");
+    };
+  }, []);
   const { data: liveContext } = useQuery({
     queryKey: ["context"],
     queryFn: () => api("/api/portal/context"),
@@ -129,6 +143,15 @@ export function Shell({
   });
   const brand = brandQuery.data || defaultBranding;
   const nav = admin ? adminNav : clientNav;
+  const visibleNav = nav.filter(
+    ([, , , permission]) => !permission || ctx?.permissions?.[permission],
+  );
+  const primarySlugs = admin
+    ? ["", "clients", "packages"]
+    : ["", "inbox", "campaigns"];
+  const mobileNav = visibleNav.filter(([, slug]) =>
+    primarySlugs.includes(slug),
+  );
   const current =
     nav.find(([, slug]) =>
       slug ? path.startsWith(`${base}/${slug}`) : path === base,
@@ -162,7 +185,7 @@ export function Shell({
         >
           <X size={22} />
         </button>
-        <Link href={base} className="brand">
+        <Link href={base} className="brand" onClick={() => setOpen(false)}>
           <span className="brand-logo-frame">
             <Image
               className="brand-logo"
@@ -190,32 +213,28 @@ export function Shell({
               {admin ? "Superadmin" : ctx?.package || "Client workspace"}
             </small>
           </div>
-          <ChevronDown size={14} />
         </div>
         <div className="nav-label">{admin ? "PLATFORM" : "WORKSPACE"}</div>
-        <nav>
-          {nav
-            .filter(([, , , p]) => !p || ctx?.permissions?.[p])
-            .map(([label, slug, Icon]) => (
-              <Link
-                key={label}
-                href={`${base}${slug ? `/${slug}` : ""}`}
-                onClick={() => setOpen(false)}
-                className={current === label ? "active" : ""}
-              >
-                <Icon size={19} />
-                {label}
-                {label === "Inbox" && <span className="nav-accent" />}
-                {label === "Notifications" &&
-                  notificationSummary?.unread > 0 && (
-                    <span className="nav-badge">
-                      {notificationSummary.unread > 99
-                        ? "99+"
-                        : notificationSummary.unread}
-                    </span>
-                  )}
-              </Link>
-            ))}
+        <nav aria-label="Workspace navigation">
+          {visibleNav.map(([label, slug, Icon]) => (
+            <Link
+              key={label}
+              href={`${base}${slug ? `/${slug}` : ""}`}
+              onClick={() => setOpen(false)}
+              className={current === label ? "active" : ""}
+              aria-current={current === label ? "page" : undefined}
+            >
+              <Icon size={19} />
+              {label}
+              {label === "Notifications" && notificationSummary?.unread > 0 && (
+                <span className="nav-badge">
+                  {notificationSummary.unread > 99
+                    ? "99+"
+                    : notificationSummary.unread}
+                </span>
+              )}
+            </Link>
+          ))}
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-help">
@@ -233,7 +252,9 @@ export function Shell({
             className="profile"
             onClick={async () => {
               await createAuthClient().signOut();
-              for (const key of Object.keys(localStorage)) if (key.startsWith("outreach-draft:")) localStorage.removeItem(key);
+              for (const key of Object.keys(localStorage))
+                if (key.startsWith("outreach-draft:"))
+                  localStorage.removeItem(key);
               // Full navigation clears the previous identity's query cache.
               // eslint-disable-next-line @next/next/no-location-assign-relative-destination
               window.location.href = "/login";
@@ -267,14 +288,35 @@ export function Shell({
             <span className="breadcrumb-divider">/</span>
             <strong>{current}</strong>
           </div>
-          <span className="workspace-indicator">
-            <ShieldCheck size={15} />
-            {preview
-              ? "Client dashboard preview"
-              : admin
-                ? "Superadmin access"
-                : "Private workspace"}
-          </span>
+          <div className="topbar-account">
+            <Link
+              href={`${base}/${admin ? "system" : "notifications"}`}
+              className="topbar-alerts"
+              aria-label={
+                admin
+                  ? "System health"
+                  : `Notifications${notificationSummary?.unread ? `, ${notificationSummary.unread} unread` : ""}`
+              }
+            >
+              {admin ? <Activity size={20} /> : <Bell size={20} />}
+              {!admin && notificationSummary?.unread > 0 && (
+                <span className="alert-dot" />
+              )}
+            </Link>
+            <span className="profile-avatar" aria-hidden="true">
+              {name.slice(0, 1).toUpperCase()}
+            </span>
+            <div className="topbar-identity">
+              <strong>{name}</strong>
+              <small>
+                {preview
+                  ? "Client preview"
+                  : admin
+                    ? "Superadmin"
+                    : ctx?.company || "Your workspace"}
+              </small>
+            </div>
+          </div>
         </header>
         {preview && (
           <div className="impersonation">
@@ -307,6 +349,32 @@ export function Shell({
           </div>
         )}
         <main className="page-content">{children}</main>
+        <nav className="mobile-bottom-nav" aria-label="Quick navigation">
+          {mobileNav.map(([label, slug, Icon]) => (
+            <Link
+              key={slug}
+              href={`${base}${slug ? `/${slug}` : ""}`}
+              className={current === label ? "active" : ""}
+              aria-current={current === label ? "page" : undefined}
+            >
+              <Icon size={22} />
+              <span>{slug === "" ? "Home" : label}</span>
+            </Link>
+          ))}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="More navigation"
+            aria-expanded={open}
+            aria-controls="workspace-navigation"
+            className={
+              !mobileNav.some(([label]) => label === current) ? "active" : ""
+            }
+          >
+            <Menu size={22} />
+            <span>More</span>
+          </button>
+        </nav>
         <footer className="app-footer">
           <span>{brand.productName}</span>
           <span>

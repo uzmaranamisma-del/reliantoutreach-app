@@ -4,6 +4,7 @@ import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "./globals.css";
+import "./workspace.css";
 import { Providers } from "@/components/providers";
 import { PwaInstall } from "@/components/pwa-install";
 export const metadata: Metadata = {

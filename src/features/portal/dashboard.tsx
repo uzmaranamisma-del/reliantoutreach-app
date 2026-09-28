@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowUpRight,
   Check,
+  ChartNoAxesCombined as ChartIcon,
   Layers,
   Mail,
   MessageSquare,
@@ -35,11 +36,7 @@ export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
     !preview,
   );
   const overviewData = preview || overview.data;
-  const packages = useLive(
-    "/api/portal/packages",
-    300,
-    !preview,
-  );
+  const packages = useLive("/api/portal/packages", 300, !preview);
   const campaigns = useQuery({
     queryKey: ["dashboard-campaigns"],
     queryFn: () => api("/api/portal/campaigns?limit=5"),
@@ -48,14 +45,10 @@ export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
   });
   const values = overviewData?.snapshot?.values;
   const cards = [
-    ["Campaigns", values?.campaigns, Send],
-    ["Connected senders", values?.senders, Mail],
-    ["Prospects", values?.prospects, Users],
-    ["Prospect lists", values?.lists, Layers],
     ["Emails sent", values?.sentCount, Send],
     ["Campaign replies", values?.replyCount, MessageSquare],
-    ["Email opens", values?.openCount, Mail],
-    ["Bounces", values?.bounceCount, Mail],
+    ["Prospects", values?.prospects, Users],
+    ["Connected senders", values?.senders, Mail],
   ] as const;
   return (
     <>
@@ -84,9 +77,11 @@ export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
       </PageTitle>
       <div className="overview-banner">
         <div>
-          <span className="eyebrow">YOUR OUTREACH WORKSPACE</span>
+          <span className="eyebrow">
+            {ctx?.company || "YOUR OUTREACH WORKSPACE"}
+          </span>
           <h2>Keep the conversation moving.</h2>
-          <p>Manage your campaigns and follow up on the replies that matter.</p>
+          <p>Your next opportunity starts with a reply.</p>
         </div>
         <div className="banner-symbol">
           <ArrowUpRight size={42} />
@@ -110,6 +105,69 @@ export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
             </small>
           </div>
         ))}
+      </div>
+      <div className="dashboard-insights">
+        <section className="panel outreach-performance">
+          <div className="section-title">
+            <div>
+              <h2>Sending activity</h2>
+              <p>All-time events from your latest sync</p>
+            </div>
+            <ChartIcon />
+          </div>
+          {[
+            ["Sent", "sentCount"],
+            ["Opened", "openCount"],
+            ["Replied", "replyCount"],
+            ["Bounced", "bounceCount"],
+          ].map(([label, key]) => {
+            const highest = Math.max(
+              1,
+              ...["sentCount", "openCount", "replyCount", "bounceCount"].map(
+                (k) => Number(values?.[k]) || 0,
+              ),
+            );
+            return (
+              <div className={`performance-row performance-${key}`} key={key}>
+                <span>{label}</span>
+                <div className="performance-track">
+                  <span
+                    style={{
+                      width: `${(Math.max(0, Number(values?.[key]) || 0) / highest) * 100}%`,
+                    }}
+                  />
+                </div>
+                <strong>
+                  {values?.[key] === undefined
+                    ? "—"
+                    : Number(values[key]).toLocaleString()}
+                </strong>
+              </div>
+            );
+          })}
+        </section>
+        <section className="panel workspace-summary">
+          <span className="eyebrow">WORKSPACE</span>
+          <h2>Built for your next move.</h2>
+          <div className="workspace-totals">
+            <div>
+              <Send size={18} />
+              <strong>{values?.campaigns ?? "—"}</strong>
+              <span>Campaigns</span>
+            </div>
+            <div>
+              <Layers size={18} />
+              <strong>{values?.lists ?? "—"}</strong>
+              <span>Prospect lists</span>
+            </div>
+          </div>
+          {!preview && (
+            <Link className="text-link" href="/app/usage">
+              {ctx?.package || "Your plan"} · View usage{" "}
+              <ArrowUpRight size={16} />
+            </Link>
+          )}
+        </section>
       </div>
       <div className="dashboard-grid">
         <section>
