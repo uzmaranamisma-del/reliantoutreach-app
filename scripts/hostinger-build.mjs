@@ -14,4 +14,6 @@ if (process.env.BOOTSTRAP_EMAIL && process.env.BOOTSTRAP_PASSWORD && process.env
   run(["tsx", "scripts/bootstrap.ts"]);
 }
 
-run(["next", "build"]);
+// Hostinger's build runner can terminate Turbopack's CSS worker before it connects.
+// Use the supported Webpack builder for predictable builds on this host.
+run(["next", "build", "--webpack"]);
