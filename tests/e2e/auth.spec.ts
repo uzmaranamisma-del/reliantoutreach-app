@@ -7,6 +7,19 @@ test("sign-in page is usable and responsive", async ({ page }) => {
   await expect(page.getByLabel("Email address")).toBeVisible();
   await page.getByLabel("Email address").fill("owner@example.com");
   await page.getByLabel("Password", { exact: true }).fill("wrong-password");
+  await page.getByRole("button", { name: "Show password" }).click();
+  await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute(
+    "type",
+    "text",
+  );
+  await page.getByRole("button", { name: "Hide password" }).click();
+  await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute(
+    "type",
+    "password",
+  );
+  await expect(page.getByLabel("Keep me signed in")).toBeChecked();
+  await page.getByLabel("Keep me signed in").uncheck();
+  const signInRequest = page.waitForRequest("**/api/auth/sign-in/email");
   await page.route("**/api/auth/sign-in/email", (r) =>
     r.fulfill({
       status: 401,
@@ -18,6 +31,7 @@ test("sign-in page is usable and responsive", async ({ page }) => {
     }),
   );
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  expect((await signInRequest).postDataJSON().rememberMe).toBe(false);
   await expect(page.locator('.error-message[role="alert"]')).toContainText(
     "Invalid email or password",
   );

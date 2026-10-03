@@ -2,9 +2,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ShieldCheck, Mail, ArrowRight } from "lucide-react";
+import {
+  ShieldCheck,
+  Mail,
+  ArrowRight,
+  LogIn,
+  LockKeyhole,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { createAuthClient } from "better-auth/react";
 import { Button } from "./ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { defaultBranding, type Branding } from "@/lib/branding";
 import { api } from "@/lib/browser-api";
 const auth = createAuthClient();
 export function AuthForm({
@@ -18,7 +28,13 @@ export function AuthForm({
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [success, setSuccess] = useState("");
+    [success, setSuccess] = useState(""),
+    [showPassword, setShowPassword] = useState(false);
+  const { data: branding = defaultBranding } = useQuery<Branding>({
+    queryKey: ["branding"],
+    queryFn: () => api("/api/branding"),
+    staleTime: 300000,
+  });
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
@@ -28,7 +44,11 @@ export function AuthForm({
       password = String(form.get("password") || "");
     try {
       if (mode === "login") {
-        const result = await auth.signIn.email({ email, password });
+        const result = await auth.signIn.email({
+          email,
+          password,
+          rememberMe: form.get("rememberMe") === "on",
+        });
         if (result.error)
           throw new Error(result.error.message || "Unable to sign in.");
         // Full navigation clears any in-memory data from a previous identity.
@@ -80,7 +100,7 @@ export function AuthForm({
     invite: "Your workspace is ready",
   }[mode];
   return (
-    <main className="auth-layout">
+    <main className="auth-layout auth-reference">
       <section className="auth-story">
         <Link href="/login" className="brand">
           <Image
@@ -92,7 +112,37 @@ export function AuthForm({
             priority
           />
         </Link>
-        <div>
+        <div
+          className="auth-visual"
+          role="img"
+          aria-label="Sample workspace with sending activity and a new reply"
+        >
+          <div className="auth-preview-stats">
+            <span className="auth-preview-label">Sample workspace</span>
+            <span>Emails sent this month</span>
+            <div className="auth-preview-total">
+              8,076 <small>+12.4%</small>
+            </div>
+            <div className="auth-preview-bars" aria-hidden="true">
+              {[22, 32, 38, 28, 50, 72, 27].map((height, index) => (
+                <i
+                  key={index}
+                  className={index === 5 ? "featured" : ""}
+                  style={{ height: height + "%" }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="auth-preview-reply">
+            <span className="auth-preview-avatar">PL</span>
+            <div>
+              <strong>New reply received</strong>
+              <small>Example company · 2 min ago</small>
+            </div>
+            <span className="auth-preview-status">Interested</span>
+          </div>
+        </div>
+        <div className="auth-copy">
           <span className="eyebrow">YOUR OUTREACH. ONE WORKSPACE.</span>
           <h1>
             Good conversations
@@ -103,17 +153,19 @@ export function AuthForm({
             Bring your campaigns, prospects, and conversations together. Keep
             your next opportunity in sight.
           </p>
-          <div className="story-line">
-            <span>01</span>
-            <div>Reach the right people</div>
-          </div>
-          <div className="story-line">
-            <span>02</span>
-            <div>Make every follow-up count</div>
-          </div>
-          <div className="story-line">
-            <span>03</span>
-            <div>Turn replies into relationships</div>
+          <div className="auth-benefits">
+            <div className="story-line">
+              <span>01</span>
+              <div>Reach the right people</div>
+            </div>
+            <div className="story-line">
+              <span>02</span>
+              <div>Make every follow-up count</div>
+            </div>
+            <div className="story-line">
+              <span>03</span>
+              <div>Turn replies into relationships</div>
+            </div>
           </div>
         </div>
         <div className="auth-foot">
@@ -123,7 +175,7 @@ export function AuthForm({
       <section className="auth-panel">
         <div className="auth-form">
           <div className="auth-icon">
-            <Mail size={24} />
+            <LogIn size={20} />
           </div>
           <h2>{title}</h2>
           <p className="muted">
@@ -156,35 +208,52 @@ export function AuthForm({
               {mode !== "reset" && (
                 <label>
                   Email address
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    readOnly={mode === "invite"}
-                    defaultValue={invite?.email}
-                    placeholder="you@company.com"
-                    autoComplete="email"
-                  />
+                  <span className="auth-input-wrap">
+                    <Mail size={17} aria-hidden="true" />
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      readOnly={mode === "invite"}
+                      defaultValue={invite?.email}
+                      placeholder="you@company.com"
+                      autoComplete="email"
+                    />
+                  </span>
                 </label>
               )}
               {mode !== "forgot" && (
                 <label>
                   Password
-                  <input
-                    type="password"
-                    name="password"
-                    required={mode !== "invite"}
-                    minLength={mode === "login" ? undefined : 12}
-                    maxLength={128}
-                    autoComplete={
-                      mode === "login" ? "current-password" : "new-password"
-                    }
-                    placeholder={
-                      mode === "login"
-                        ? "Enter your password"
-                        : "At least 12 characters"
-                    }
-                  />
+                  <span className="auth-input-wrap">
+                    <LockKeyhole size={17} aria-hidden="true" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      required={mode !== "invite"}
+                      minLength={mode === "login" ? undefined : 12}
+                      maxLength={128}
+                      autoComplete={
+                        mode === "login" ? "current-password" : "new-password"
+                      }
+                      placeholder={
+                        mode === "login"
+                          ? "Enter your password"
+                          : "At least 12 characters"
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="auth-password-toggle"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      aria-pressed={showPassword}
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </span>
                 </label>
               )}
               {(mode === "reset" || mode === "invite") && (
@@ -214,7 +283,11 @@ export function AuthForm({
                 </>
               )}
               {mode === "login" && (
-                <div className="align-right">
+                <div className="auth-login-options">
+                  <label className="auth-remember">
+                    <input type="checkbox" name="rememberMe" defaultChecked />
+                    Keep me signed in
+                  </label>
                   <Link href="/forgot-password" className="text-link">
                     Forgot password?
                   </Link>
@@ -247,9 +320,16 @@ export function AuthForm({
             )}
           </p>
         </div>
-        <div className="copyright">
-          © {new Date().getFullYear()} ReliantOutreach
-        </div>
+        <footer className="copyright auth-links">
+          <span>© {new Date().getFullYear()} ReliantOutreach</span>
+          {branding.privacyUrl && <a href={branding.privacyUrl}>Privacy</a>}
+          <Link href={branding.termsUrl || "/terms"}>Terms</Link>
+          <a
+            href={`mailto:${branding.supportEmail || "info@reliantoutreach.com"}`}
+          >
+            Support
+          </a>
+        </footer>
       </section>
     </main>
   );
