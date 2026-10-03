@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
 import { useLive } from "@/features/portal/hooks";
 import { api } from "@/lib/browser-api";
+import { displayDate } from "@/lib/presentation";
 import { useState } from "react";
 
 export function AdminRecords({ kind }: { kind: string }) {
@@ -20,12 +21,27 @@ export function AdminRecords({ kind }: { kind: string }) {
   const q = useLive(`/api/admin/${kind}?page=${page}`);
   const definitions: Record<string, any[]> = {
     users: [
-      { key: "name", label: "Name" },
-      { key: "email", label: "Email" },
+      {
+        key: "name",
+        label: "User",
+        render: (r: any) => (
+          <div className="person-cell">
+            <span className="person-avatar" aria-hidden="true">
+              {(r.name || r.email).slice(0, 2).toUpperCase()}
+            </span>
+            <span>
+              <strong>{r.name || "Unnamed user"}</strong>
+              <small>{r.email}</small>
+            </span>
+          </div>
+        ),
+      },
       {
         key: "superadmin",
-        label: "Superadmin",
-        render: (r: any) => (r.superadmin ? "Yes" : "No"),
+        label: "Role",
+        render: (r: any) => (
+          <Status value={r.superadmin ? "Superadmin" : "Client user"} />
+        ),
       },
       {
         key: "disabled",
@@ -42,7 +58,7 @@ export function AdminRecords({ kind }: { kind: string }) {
       {
         key: "expiresAt",
         label: "Expires",
-        render: (r: any) => new Date(r.expiresAt).toLocaleString(),
+        render: (r: any) => displayDate(r.expiresAt),
       },
       {
         key: "status",
@@ -86,7 +102,7 @@ export function AdminRecords({ kind }: { kind: string }) {
       {
         key: "createdAt",
         label: "Time",
-        render: (r: any) => new Date(r.createdAt).toLocaleString(),
+        render: (r: any) => displayDate(r.createdAt),
       },
     ],
   };

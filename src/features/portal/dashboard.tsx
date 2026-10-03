@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowUpRight,
   Check,
+  ShieldCheck,
   ChartNoAxesCombined as ChartIcon,
   Layers,
   Mail,
@@ -45,10 +46,16 @@ export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
   });
   const values = overviewData?.snapshot?.values;
   const cards = [
-    ["Emails sent", values?.sentCount, Send],
-    ["Campaign replies", values?.replyCount, MessageSquare],
-    ["Prospects", values?.prospects, Users],
-    ["Connected senders", values?.senders, Mail],
+    ["Emails sent", values?.sentCount, Send, "usage", "View sending activity"],
+    [
+      "Campaign replies",
+      values?.replyCount,
+      MessageSquare,
+      "inbox",
+      "Open inbox",
+    ],
+    ["Prospects", values?.prospects, Users, "prospects", "Manage prospects"],
+    ["Senders", values?.senders, Mail, "senders", "Review senders"],
   ] as const;
   return (
     <>
@@ -75,98 +82,180 @@ export function Dashboard({ preview }: { preview?: ClientPreview } = {}) {
           </Button>
         )}
       </PageTitle>
-      <div className="overview-banner">
-        <div>
-          <span className="eyebrow">
-            {ctx?.company || "YOUR OUTREACH WORKSPACE"}
-          </span>
-          <h2>Keep the conversation moving.</h2>
-          <p>Your next opportunity starts with a reply.</p>
-        </div>
-        <div className="banner-symbol">
-          <ArrowUpRight size={42} />
-        </div>
-      </div>
       {!preview && overview.error && <ErrorBox error={overview.error} />}
-      <div className="metric-grid">
-        {cards.map(([label, value, Icon]) => (
-          <div className="metric-card" key={label}>
-            <div>
-              <span>{label}</span>
-              <Icon size={19} />
+      <div className="ro-grid-4 dashboard-kpis">
+        {cards.map(([label, value, Icon, slug, footer], index) => (
+          <section
+            className={`ro-kpi ${index === 0 ? "ro-kpi--featured" : ""}`}
+            key={label}
+          >
+            <div className="ro-kpi__top">
+              <span className="ro-tile">
+                <Icon />
+              </span>
+              <div>
+                <div className="ro-kpi__title">{label}</div>
+                <div className="ro-kpi__sub">
+                  {index < 2 ? "All-time campaign totals" : "Your workspace"}
+                </div>
+              </div>
             </div>
-            <strong>
-              {value === undefined ? "—" : Number(value).toLocaleString()}
-            </strong>
-            <small>
+            <div className="ro-kpi__value">
               {value === undefined
-                ? "Awaiting first usage sync"
-                : "Latest sync · all-time totals"}
-            </small>
-          </div>
+                ? "Not synced"
+                : Number(value).toLocaleString()}
+            </div>
+            {!preview &&
+            (slug === "usage" || ctx?.permissions[`${slug}.view`]) ? (
+              <Link className="ro-kpi__foot" href={`/app/${slug}`}>
+                {footer}
+                <ArrowUpRight />
+              </Link>
+            ) : (
+              <div className="ro-kpi__foot">Latest workspace sync</div>
+            )}
+          </section>
         ))}
       </div>
-      <div className="dashboard-insights">
-        <section className="panel outreach-performance">
-          <div className="section-title">
+      <div className="ro-dashboard-main">
+        <section className="ro-card">
+          <div className="ro-card__head">
             <div>
-              <h2>Sending activity</h2>
-              <p>All-time events from your latest sync</p>
+              <h2 className="ro-card__title">Workspace</h2>
+              <p className="ro-card__sub">
+                {ctx?.package || "Your plan"} ·{" "}
+                {ctx?.company || "Your workspace"}
+              </p>
             </div>
-            <ChartIcon />
+            {!preview && ctx?.permissions["lists.manage"] && (
+              <Button asChild size="sm">
+                <Link href="/app/lists">
+                  <Plus />
+                  New list
+                </Link>
+              </Button>
+            )}
           </div>
-          {[
-            ["Sent", "sentCount"],
-            ["Opened", "openCount"],
-            ["Replied", "replyCount"],
-            ["Bounced", "bounceCount"],
-          ].map(([label, key]) => {
-            const highest = Math.max(
-              1,
-              ...["sentCount", "openCount", "replyCount", "bounceCount"].map(
-                (k) => Number(values?.[k]) || 0,
-              ),
-            );
-            return (
-              <div className={`performance-row performance-${key}`} key={key}>
-                <span>{label}</span>
-                <div className="performance-track">
-                  <span
-                    style={{
-                      width: `${(Math.max(0, Number(values?.[key]) || 0) / highest) * 100}%`,
-                    }}
-                  />
+          <div className="ro-card__body">
+            <div className="ro-minis">
+              {(
+                [
+                  ["Campaigns", values?.campaigns, Send, "Connected campaigns"],
+                  [
+                    "Prospect lists",
+                    values?.lists,
+                    Layers,
+                    "Organized audiences",
+                  ],
+                  [
+                    "Bounce rate",
+                    values?.sentCount
+                      ? `${((100 * (Number(values.bounceCount) || 0)) / values.sentCount).toFixed(1)}%`
+                      : "Not available",
+                    ShieldCheck,
+                    "All-time campaign totals",
+                  ],
+                  [
+                    "Replies",
+                    values?.replyCount,
+                    MessageSquare,
+                    "Conversations started",
+                  ],
+                ] as const
+              ).map(([label, value, Icon, detail]) => (
+                <div className="ro-mini" key={label}>
+                  <div className="ro-mini__head">
+                    <Icon />
+                    {label}
+                  </div>
+                  <div className="ro-mini__value">
+                    {typeof value === "number"
+                      ? value.toLocaleString()
+                      : (value ?? "Not synced")}
+                  </div>
+                  <div className="ro-mini__meta">{detail}</div>
                 </div>
-                <strong>
-                  {values?.[key] === undefined
-                    ? "—"
-                    : Number(values[key]).toLocaleString()}
-                </strong>
-              </div>
-            );
-          })}
-        </section>
-        <section className="panel workspace-summary">
-          <span className="eyebrow">WORKSPACE</span>
-          <h2>Built for your next move.</h2>
-          <div className="workspace-totals">
-            <div>
-              <Send size={18} />
-              <strong>{values?.campaigns ?? "—"}</strong>
-              <span>Campaigns</span>
+              ))}
             </div>
-            <div>
-              <Layers size={18} />
-              <strong>{values?.lists ?? "—"}</strong>
-              <span>Prospect lists</span>
+            <div className="ro-funnel dashboard-funnel">
+              {[
+                ["Sent", "sentCount"],
+                ["Opened", "openCount"],
+                ["Replied", "replyCount"],
+                ["Bounced", "bounceCount"],
+              ].map(([label, key]) => (
+                <div className="funnel-row" key={key}>
+                  <span className="lbl">{label}</span>
+                  <div className={`ro-progress funnel-${key}`}>
+                    <span
+                      style={{
+                        width: `${Math.min(100, (100 * (Number(values?.[key]) || 0)) / Math.max(1, Number(values?.sentCount) || 0))}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="val">
+                    {values?.[key] === undefined
+                      ? "N/A"
+                      : Number(values[key]).toLocaleString()}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
-          {!preview && (
-            <Link className="text-link" href="/app/usage">
-              {ctx?.package || "Your plan"} · View usage{" "}
-              <ArrowUpRight size={16} />
-            </Link>
-          )}
+        </section>
+        <section className="ro-card sending-chart">
+          <div className="ro-card__head">
+            <div>
+              <h2 className="ro-card__title">Sending activity</h2>
+              <p className="ro-card__sub">Latest sync · all-time events</p>
+            </div>
+            <ChartIcon size={20} />
+          </div>
+          <div className="ro-card__body">
+            <div className="activity-bars" aria-label="Sending activity totals">
+              {[
+                ["Sent", "sentCount"],
+                ["Opened", "openCount"],
+                ["Replied", "replyCount"],
+                ["Bounced", "bounceCount"],
+              ].map(([label, key], index) => {
+                const value = Number(values?.[key]) || 0;
+                const max = Math.max(
+                  1,
+                  ...[
+                    "sentCount",
+                    "openCount",
+                    "replyCount",
+                    "bounceCount",
+                  ].map((k) => Number(values?.[k]) || 0),
+                );
+                return (
+                  <div className="activity-bar-column" key={key}>
+                    <div className="activity-bar-track">
+                      <div
+                        className={`activity-bar ${index === 0 ? "featured" : ""}`}
+                        style={{
+                          height: `${values?.[key] === undefined ? 0 : Math.max(value > 0 ? 2 : 0, (100 * value) / max)}%`,
+                        }}
+                        title={`${label}: ${value.toLocaleString()}`}
+                      />
+                      <strong>
+                        {values?.[key] === undefined
+                          ? "N/A"
+                          : value.toLocaleString()}
+                      </strong>
+                    </div>
+                    <span>{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="ro-card__sub chart-note">
+              {overviewData?.snapshot
+                ? `Captured ${new Date(overviewData.snapshot.capturedAt).toLocaleString()}`
+                : "Activity appears after the first successful sync."}
+            </p>
+          </div>
         </section>
       </div>
       <div className="dashboard-grid">

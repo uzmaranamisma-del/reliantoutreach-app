@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
 import { CampaignBuilder } from "@/features/campaign-builder";
 import { api } from "@/lib/browser-api";
-import { Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { Pencil, Plus, Trash2, Upload, MoreHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { columnsByKind, resourceFields } from "./config";
@@ -110,11 +110,12 @@ export function Resources({ kind }: { kind: string }) {
         )}
       </PageTitle>
       {kind === "campaigns" && (
-        <div className="tabs">
+        <div className="tabs ro-tabs">
           {["", "Running", "Draft", "Paused", "Completed"].map((s) => (
             <button
               key={s}
-              className={status === s ? "selected" : ""}
+              className={`ro-tab ${status === s ? "selected" : ""}`}
+              aria-pressed={status === s}
               onClick={() => {
                 setStatus(s);
                 setPage(1);
@@ -230,14 +231,24 @@ export function Resources({ kind }: { kind: string }) {
               </Button>
             )}
             {can("delete") && (
-              <Button
-                size="sm"
-                variant="ghost"
-                aria-label={`Delete ${singular}`}
-                onClick={() => setSelected({ ...r, delete: true })}
-              >
-                <Trash2 size={15} />
-              </Button>
+              <details className="row-more">
+                <summary
+                  aria-label={`More actions for ${r.name || r.email || r.title}`}
+                >
+                  <MoreHorizontal size={18} />
+                </summary>
+                <div className="row-more-menu">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Delete ${singular}`}
+                    onClick={() => setSelected({ ...r, delete: true })}
+                  >
+                    <Trash2 size={15} />
+                    Delete
+                  </Button>
+                </div>
+              </details>
             )}
           </>
         )}

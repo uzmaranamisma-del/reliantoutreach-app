@@ -5,7 +5,9 @@ import {
   Loading,
   PageTitle,
   Refresh,
+  Status,
 } from "@/components/data";
+import { displayDate, readable } from "@/lib/presentation";
 import { useLive } from "@/features/portal/hooks";
 
 export function System() {
@@ -25,11 +27,20 @@ export function System() {
         <Loading />
       ) : (
         <>
-          <div className="health-grid">
+          <div className="service-grid">
             {[
               ["Application", q.data.application],
               ["MySQL", q.data.mysql],
               ["Manyreach API", q.data.provider],
+            ].map(([label, value]) => (
+              <section key={label} className="ro-card service-card">
+                <span className="ro-card__sub">{label}</span>
+                <Status value={value} />
+              </section>
+            ))}
+          </div>
+          <div className="health-grid health-metrics">
+            {[
               ["Pending jobs", q.data.pendingJobs],
               ["Failed jobs", q.data.failedJobs],
               ["Last cron run", q.data.cron?.value || "Never"],
@@ -40,7 +51,7 @@ export function System() {
             ].map(([label, value]) => (
               <div className="panel health-card" key={label}>
                 <span>{label}</span>
-                <strong>{value}</strong>
+                <strong>{readable(value)}</strong>
               </div>
             ))}
           </div>
@@ -53,12 +64,16 @@ export function System() {
             rows={q.data.logs}
             columns={[
               { key: "operation", label: "Operation" },
-              { key: "status", label: "HTTP status" },
+              {
+                key: "status",
+                label: "HTTP status",
+                render: (r: any) => <Status value={r.status} />,
+              },
               { key: "durationMs", label: "Duration (ms)" },
               {
                 key: "createdAt",
                 label: "When",
-                render: (r: any) => new Date(r.createdAt).toLocaleString(),
+                render: (r: any) => displayDate(r.createdAt),
               },
             ]}
           />

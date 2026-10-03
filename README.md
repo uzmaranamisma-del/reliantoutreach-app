@@ -131,3 +131,11 @@ Owner and Admin permissions are limited by their package and client overrides. M
 5. [RELEASE_GATES.md](RELEASE_GATES.md): unresolved requirements and live launch gates.
 
 Cron clears API logs after seven days, audit logs after the configured retention (default 90 days), finished/failed jobs after seven days, stale temporary jobs after two days, webhook metadata after seven days, old notifications after 30 days and expired authentication metadata. Never add provider payloads to logs. Diagnose with request metadata in `/admin/system` and job errors in `/admin/jobs`.
+
+## UI kit and appearance
+
+The supplied ReliantOutreach UI kit is installed under `public/ui-kit`. Shared components use its colors, fonts, logos and component styles; `src/app/ui-kit.css` adapts those styles to the existing responsive layouts. Desktop tables keep their existing data operations, and narrow screens retain record cards and full-screen conversations.
+
+Settings > Appearance provides Dark, Light and Match system for both client and admin accounts. The preference is stored in `User.theme_preference` and the device's `ro-theme` local storage. `/api/me/preferences` only reads or updates the signed-in user's preference and validates origin and accepted values. Apply the committed user-theme migration before starting this release.
+
+Dashboard charts show actual all-time snapshot totals, not the kit's sample monthly data. Theme tests cover persistence, system changes and rejection of foreign-origin or arbitrary-user updates. Browser checks also cover mobile chat drafts, latest-message scrolling and responsive admin pages in both themes.

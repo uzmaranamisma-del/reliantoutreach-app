@@ -8,6 +8,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { readable, statusTone } from "@/lib/presentation";
 export function PageTitle({
   eyebrow,
   title,
@@ -20,13 +21,13 @@ export function PageTitle({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="page-title">
+    <div className="page-title ro-pagehead">
       <div>
-        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+        {eyebrow && <div className="eyebrow ro-overline">{eyebrow}</div>}
         <h1>{title}</h1>
         {description && <p className="muted">{description}</p>}
       </div>
-      <div className="title-actions">{children}</div>
+      <div className="title-actions ro-pagehead__actions">{children}</div>
     </div>
   );
 }
@@ -78,8 +79,8 @@ export function Loading() {
 export function Status({ value }: { value: unknown }) {
   const text = String(value || "Unknown");
   return (
-    <span className={`status status-${text.toLowerCase()}`}>
-      {text.replaceAll("_", " ")}
+    <span className={`status ro-badge ro-badge--${statusTone(text)}`}>
+      {readable(text)}
     </span>
   );
 }
@@ -147,7 +148,7 @@ export function DataTable({
       )
     : rows;
   return (
-    <section className="panel table-panel">
+    <section className="panel table-panel ro-table-wrap">
       {rows.length > 0 && !loading && !error && (
         <label className="mobile-table-sort">
           Sort current page
@@ -177,8 +178,8 @@ export function DataTable({
         </label>
       )}
       {onSearch && (
-        <div className="table-toolbar">
-          <div className="search-field">
+        <div className="table-toolbar ro-toolbar">
+          <div className="search-field ro-search">
             <Search size={17} />
             <input
               aria-label={searchLabel}
@@ -202,7 +203,7 @@ export function DataTable({
         <Empty />
       ) : (
         <div className="table-scroll">
-          <table>
+          <table className="ro-table">
             <thead>
               <tr>
                 {columns.map((c) => (
@@ -228,7 +229,13 @@ export function DataTable({
                 <tr key={row.id || index}>
                   {columns.map((c) => (
                     <td key={c.key} data-label={c.label}>
-                      {c.render ? c.render(row) : String(row[c.key] ?? "—")}
+                      {c.render ? (
+                        c.render(row)
+                      ) : c.key === "role" ? (
+                        <Status value={row[c.key]} />
+                      ) : (
+                        readable(row[c.key])
+                      )}
                     </td>
                   ))}
                   {actions && (
@@ -243,7 +250,7 @@ export function DataTable({
         </div>
       )}
       {onPage && (
-        <div className="table-footer">
+        <div className="table-footer ro-pager">
           <span>
             Page {page}
             {total !== undefined ? ` · ${total.toLocaleString()} total` : ""}
@@ -303,6 +310,7 @@ export function Field({
   help?: string;
 }) {
   const props = {
+    className: "ro-input",
     name,
     id: name,
     required,
@@ -315,7 +323,7 @@ export function Field({
       onChange?.(type === "number" ? Number(e.target.value) : e.target.value),
   };
   return (
-    <label htmlFor={name}>
+    <label htmlFor={name} className="ro-field">
       {label}
       {options ? (
         <select {...props}>

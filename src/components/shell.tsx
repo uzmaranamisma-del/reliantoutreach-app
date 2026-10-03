@@ -2,7 +2,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { ThemeSync } from "./appearance";
 import { useQuery } from "@tanstack/react-query";
 import { createAuthClient } from "better-auth/react";
 import {
@@ -26,6 +27,7 @@ import {
   Layers,
   X,
   Bell,
+  Search,
 } from "lucide-react";
 import { api } from "@/lib/browser-api";
 import { Button } from "./ui/button";
@@ -67,7 +69,9 @@ export function Shell({
   preview?: ClientPreview;
 }) {
   const path = usePathname(),
-    [open, setOpen] = useState(false);
+    [open, setOpen] = useState(false),
+    [navSearch, setNavSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -80,7 +84,7 @@ export function Shell({
       if (event.key === "Escape") setOpen(false);
       if (event.key === "Tab") {
         const controls = document.querySelectorAll<HTMLElement>(
-          "#workspace-navigation a, #workspace-navigation button",
+          "#workspace-navigation a, #workspace-navigation button, #workspace-navigation input",
         );
         const first = controls[0],
           last = controls[controls.length - 1];
@@ -152,20 +156,40 @@ export function Shell({
   const mobileNav = visibleNav.filter(([, slug]) =>
     primarySlugs.includes(slug),
   );
+  const groupFor = (slug: string) =>
+    admin
+      ? "Platform"
+      : ["analytics", "usage", "notifications"].includes(slug)
+        ? "Insights"
+        : ["team", "settings"].includes(slug)
+          ? "Account"
+          : "Workspace";
+  const navGroups = (
+    admin ? ["Platform"] : ["Workspace", "Insights", "Account"]
+  ).map((group) => ({
+    group,
+    items: visibleNav.filter(
+      ([label, slug]) =>
+        groupFor(slug) === group &&
+        label.toLowerCase().includes(navSearch.toLowerCase()),
+    ),
+  }));
   const current =
     nav.find(([, slug]) =>
       slug ? path.startsWith(`${base}/${slug}`) : path === base,
     )?.[0] || "Workspace";
   return (
     <div
-      className="shell"
+      className="shell ro-shell"
       style={
         {
-          "--blue": brand.accentColor,
-          "--interaction": brand.accentColor,
+          ...(brand.accentColor !== defaultBranding.accentColor
+            ? { "--brand": brand.accentColor }
+            : {}),
         } as React.CSSProperties
       }
     >
+      <ThemeSync />
       {open && (
         <button
           className="drawer-scrim"
@@ -175,7 +199,7 @@ export function Shell({
       )}
       <aside
         id="workspace-navigation"
-        className={`sidebar ${open ? "sidebar-open" : ""}`}
+        className={`sidebar ro-sidebar ${open ? "sidebar-open" : ""}`}
       >
         <button
           ref={closeRef}
@@ -185,20 +209,40 @@ export function Shell({
         >
           <X size={22} />
         </button>
-        <Link href={base} className="brand" onClick={() => setOpen(false)}>
-          <span className="brand-logo-frame">
-            <Image
-              className="brand-logo"
-              src="/brand-logo.png"
-              alt={brand.productName}
-              width={2172}
-              height={724}
-              priority
-            />
-          </span>
+        <Link
+          href={base}
+          className="brand ro-brand"
+          onClick={() => setOpen(false)}
+        >
+          <Image
+            className="ro-logo ro-logo--dark"
+            src="/ui-kit/logos/reliantoutreach-logo-white.svg"
+            alt={brand.productName}
+            width={210}
+            height={26}
+            priority
+          />
+          <Image
+            className="ro-logo ro-logo--light"
+            src="/ui-kit/logos/reliantoutreach-logo-black.svg"
+            alt={brand.productName}
+            width={210}
+            height={26}
+            priority
+          />
         </Link>
-        <div className="workspace-card">
-          <span className="workspace-avatar">
+        <label className="ro-search nav-search">
+          <Search size={16} />
+          <input
+            ref={searchRef}
+            aria-label="Find a page"
+            placeholder="Find a page"
+            value={navSearch}
+            onChange={(e) => setNavSearch(e.target.value)}
+          />
+        </label>
+        <div className="workspace-card ro-switcher">
+          <span className="workspace-avatar ro-avatar ro-avatar--brand">
             {admin ? (
               <ShieldCheck size={19} />
             ) : (
@@ -214,30 +258,44 @@ export function Shell({
             </small>
           </div>
         </div>
-        <div className="nav-label">{admin ? "PLATFORM" : "WORKSPACE"}</div>
         <nav aria-label="Workspace navigation">
-          {visibleNav.map(([label, slug, Icon]) => (
-            <Link
-              key={label}
-              href={`${base}${slug ? `/${slug}` : ""}`}
-              onClick={() => setOpen(false)}
-              className={current === label ? "active" : ""}
-              aria-current={current === label ? "page" : undefined}
-            >
-              <Icon size={19} />
-              {label}
-              {label === "Notifications" && notificationSummary?.unread > 0 && (
-                <span className="nav-badge">
-                  {notificationSummary.unread > 99
-                    ? "99+"
-                    : notificationSummary.unread}
-                </span>
-              )}
-            </Link>
-          ))}
+          {navGroups.map(
+            ({ group, items }) =>
+              items.length > 0 && (
+                <Fragment key={group}>
+                  <div className="ro-nav-group">{group}</div>
+                  {items.map(([label, slug, Icon]) => (
+                    <Link
+                      key={label}
+                      href={`${base}${slug ? `/${slug}` : ""}`}
+                      onClick={() => {
+                        setOpen(false);
+                        setNavSearch("");
+                      }}
+                      className={`ro-nav-item ${current === label ? "active" : ""}`}
+                      aria-current={current === label ? "page" : undefined}
+                    >
+                      <Icon size={19} />
+                      {label}
+                      {label === "Notifications" &&
+                        notificationSummary?.unread > 0 && (
+                          <span className="nav-badge count count--accent">
+                            {notificationSummary.unread > 99
+                              ? "99+"
+                              : notificationSummary.unread}
+                          </span>
+                        )}
+                    </Link>
+                  ))}
+                </Fragment>
+              ),
+          )}
+          {navSearch && !navGroups.some((g) => g.items.length) && (
+            <p className="muted small">No matching pages.</p>
+          )}
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-help">
+          <div className="sidebar-help ro-help">
             <LifeBuoy size={20} />
             <strong>Need a hand?</strong>
             <p>
@@ -249,7 +307,7 @@ export function Shell({
             </p>
           </div>
           <button
-            className="profile"
+            className="profile ro-user"
             onClick={async () => {
               await createAuthClient().signOut();
               for (const key of Object.keys(localStorage))
@@ -269,8 +327,8 @@ export function Shell({
           </button>
         </div>
       </aside>
-      <div className="main-shell" inert={open || undefined}>
-        <header className="topbar">
+      <div className="main-shell ro-main" inert={open || undefined}>
+        <header className="topbar ro-topbar">
           <div>
             <button
               ref={menuRef}
@@ -348,7 +406,7 @@ export function Shell({
             </Button>
           </div>
         )}
-        <main className="page-content">{children}</main>
+        <main className="page-content ro-content">{children}</main>
         <nav className="mobile-bottom-nav" aria-label="Quick navigation">
           {mobileNav.map(([label, slug, Icon]) => (
             <Link

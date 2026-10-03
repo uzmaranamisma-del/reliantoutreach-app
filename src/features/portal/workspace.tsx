@@ -14,6 +14,8 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useContext, useLive } from "./hooks";
+import { readable } from "@/lib/presentation";
+import { Appearance } from "@/components/appearance";
 
 export function PackageCatalog({
   data,
@@ -29,7 +31,9 @@ export function PackageCatalog({
       <div className="section-title">
         <div>
           <h2>Available packages</h2>
-          <p className="muted">Current ReliantOutreach packages and availability.</p>
+          <p className="muted">
+            Current ReliantOutreach packages and availability.
+          </p>
         </div>
       </div>
       {error ? (
@@ -133,7 +137,10 @@ export function Usage() {
           </p>
           <div className="usage-grid">
             {Object.entries(q.data.limits).map(([key, value]) => {
-              const used = key === "monthlyEmails" ? q.data.monthly?.values?.monthlyEmails : q.data.snapshot?.values?.[key];
+              const used =
+                key === "monthlyEmails"
+                  ? q.data.monthly?.values?.monthlyEmails
+                  : q.data.snapshot?.values?.[key];
               return (
                 <div className="panel usage-card" key={key}>
                   <h3>{key.replace(/([A-Z])/g, " $1")}</h3>
@@ -162,8 +169,28 @@ export function Usage() {
                           ? "Awaiting a usage snapshot."
                           : "Latest synchronized usage."}
                   </small>
-                  {key === "monthlyEmails" && <small>Campaign statistics through {q.data.monthly?.values?.through ? new Date(q.data.monthly.values.through).toLocaleString() : "first completed collection pending"} (UTC month). Manual replies may not be included.</small>}
-                  {key === "monthlyEmails" && Number(value) > 0 && used >= Number(value) * 0.8 && <p className="notice">{used >= Number(value) ? "Monthly allowance reached." : "Approaching your monthly allowance."} Contact your administrator to review usage. Sending remains enabled.</p>}
+                  {key === "monthlyEmails" && (
+                    <small>
+                      Campaign statistics through{" "}
+                      {q.data.monthly?.values?.through
+                        ? new Date(
+                            q.data.monthly.values.through,
+                          ).toLocaleString()
+                        : "first completed collection pending"}{" "}
+                      (UTC month). Manual replies may not be included.
+                    </small>
+                  )}
+                  {key === "monthlyEmails" &&
+                    Number(value) > 0 &&
+                    used >= Number(value) * 0.8 && (
+                      <p className="notice">
+                        {used >= Number(value)
+                          ? "Monthly allowance reached."
+                          : "Approaching your monthly allowance."}{" "}
+                        Contact your administrator to review usage. Sending
+                        remains enabled.
+                      </p>
+                    )}
                 </div>
               );
             })}
@@ -387,6 +414,7 @@ export function Settings() {
         title="Settings"
         description="Your profile and workspace details."
       />
+      <Appearance />
       <div className="panel content-panel">
         <h2>Workspace</h2>
         <dl className="detail-grid">
@@ -398,7 +426,7 @@ export function Settings() {
           ].map(([k, v]) => (
             <div key={k}>
               <dt>{k}</dt>
-              <dd>{v || "—"}</dd>
+              <dd>{readable(v)}</dd>
             </div>
           ))}
         </dl>

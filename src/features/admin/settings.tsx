@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useLive } from "@/features/portal/hooks";
 import { api } from "@/lib/browser-api";
 import type { Branding } from "@/lib/branding";
+import { Appearance } from "@/components/appearance";
 export function AdminSettings() {
   const q = useLive("/api/admin/settings");
   return (
@@ -14,6 +15,7 @@ export function AdminSettings() {
         title="Platform settings"
         description="Manage your workspace name, support contact and policy links."
       />
+      <Appearance />
       {q.error ? (
         <ErrorBox error={q.error} />
       ) : q.data ? (
@@ -32,7 +34,7 @@ function BrandingForm({ initial }: { initial: Branding }) {
   const cache = useQueryClient();
   return (
     <form
-      className="panel"
+      className="panel branding-form ro-formcard"
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
@@ -49,36 +51,44 @@ function BrandingForm({ initial }: { initial: Branding }) {
         }
       }}
     >
-      <div className="form-grid">
-        {(
-          [
-            ["productName", "Product name"],
-            ["supportEmail", "Support email"],
-            ["websiteUrl", "Website URL"],
-            ["privacyUrl", "Privacy policy URL"],
-            ["termsUrl", "Service terms URL"],
-            ["accentColor", "Accent color (hex)"],
-          ] as const
-        ).map(([key, label]) => (
-          <Field
-            key={key}
-            name={key}
-            label={label}
-            value={form[key]}
-            onChange={(value) => {
-              setForm({ ...form, [key]: value });
-              setSaved(false);
-            }}
-          />
-        ))}
-      </div>
-      <p className="muted">
-        Policy links are optional. Use your published HTTPS policy pages.
-      </p>
-      {error && <ErrorBox error={error} />}
-      {saved && <p role="status">Settings saved.</p>}
-      <div className="form-actions">
-        <Button disabled={busy}>{busy ? "Saving…" : "Save settings"}</Button>
+      <section className="ro-formcard__section">
+        <div>
+          <h2 className="ro-card__title">Workspace identity</h2>
+          <p>Your name, accent color, and support details.</p>
+        </div>
+        <div className="form-grid">
+          {(
+            [
+              ["productName", "Product name"],
+              ["supportEmail", "Support email"],
+              ["websiteUrl", "Website URL"],
+              ["privacyUrl", "Privacy policy URL"],
+              ["termsUrl", "Service terms URL"],
+              ["accentColor", "Accent color (hex)"],
+            ] as const
+          ).map(([key, label]) => (
+            <Field
+              key={key}
+              name={key}
+              label={label}
+              value={form[key]}
+              onChange={(value) => {
+                setForm({ ...form, [key]: value });
+                setSaved(false);
+              }}
+            />
+          ))}
+        </div>
+      </section>
+      <div className="ro-formcard__foot">
+        <p className="muted">
+          Policy links are optional. Use your published HTTPS policy pages.
+        </p>
+        {error && <ErrorBox error={error} />}
+        {saved && <p role="status">Settings saved.</p>}
+        <div className="form-actions">
+          <Button disabled={busy}>{busy ? "Saving…" : "Save settings"}</Button>
+        </div>
       </div>
     </form>
   );

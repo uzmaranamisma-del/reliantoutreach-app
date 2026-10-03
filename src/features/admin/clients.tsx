@@ -113,7 +113,7 @@ export function Clients() {
         </Button>
       </PageTitle>
       {deleteError && <ErrorBox error={deleteError} />}
-      <div className="selection-toolbar">
+      <div className="selection-toolbar ro-bulkbar">
         <label className="check">
           <input
             type="checkbox"
@@ -199,7 +199,13 @@ export function Clients() {
             key: "company",
             label: "Company",
             render: (r: any) => (
-              <Link className="strong-link" href={`/admin/clients/${r.id}`}>
+              <Link
+                className="strong-link person-cell"
+                href={`/admin/clients/${r.id}`}
+              >
+                <span className="person-avatar" aria-hidden="true">
+                  {r.company.slice(0, 2).toUpperCase()}
+                </span>
                 {r.company}
               </Link>
             ),
@@ -218,7 +224,7 @@ export function Clients() {
           {
             key: "package",
             label: "Package",
-            render: (r: any) => r.package.name,
+            render: (r: any) => <Status value={r.package.name} />,
           },
           {
             key: "status",

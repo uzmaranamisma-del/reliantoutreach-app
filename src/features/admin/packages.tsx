@@ -70,15 +70,17 @@ export function Packages() {
       </div>
       <div className="package-grid">
         {q.data?.items.map((p: any) => (
-          <section className="panel package-card" key={p.id}>
+          <section className="panel package-card ro-card ro-pkg" key={p.id}>
             <div className="section-title">
               <h2>{p.name}</h2>
               <Status value={p.active ? "Active" : "Draft"} />
             </div>
             <p className="package-service-label">
-              {p.serviceType === "LINKEDIN" ? "LinkedIn managed service" : "Email outreach"}
+              {p.serviceType === "LINKEDIN"
+                ? "LinkedIn managed service"
+                : "Email outreach"}
             </p>
-            <div className="package-price">
+            <div className="package-price ro-pkg__price">
               {new Intl.NumberFormat("en-US", {
                 style: "currency",
                 currency: p.currency || "USD",
@@ -86,7 +88,7 @@ export function Packages() {
               }).format(Number(p.price))}
               <small>{p.billingLabel}</small>
             </div>
-            <div className="package-summary-grid">
+            <div className="package-summary-grid ro-pkg__stats">
               <div>
                 <span>Setup</span>
                 <strong>
@@ -98,7 +100,9 @@ export function Packages() {
                 </strong>
               </div>
               <div>
-                <span>{p.serviceType === "LINKEDIN" ? "Messages" : "Emails"}</span>
+                <span>
+                  {p.serviceType === "LINKEDIN" ? "Messages" : "Emails"}
+                </span>
                 <strong>
                   {p.serviceType === "LINKEDIN"
                     ? `${Number(p.initialMessages || 0).toLocaleString()} + ${Number(p.monthlyMessages || 0).toLocaleString()}/mo`
@@ -167,6 +171,17 @@ export function Packages() {
             </Button>
           </section>
         ))}
+        <button
+          type="button"
+          className="ro-pkg ro-pkg--new"
+          onClick={() => setEditing(null)}
+        >
+          <span className="ro-tile">
+            <Plus />
+          </span>
+          <strong>New package</strong>
+          <span>Set pricing, features, and capacity.</span>
+        </button>
       </div>
       {q.data?.items.length === 0 && (
         <div className="panel">

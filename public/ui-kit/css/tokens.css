@@ -1,0 +1,133 @@
+/* ReliantOutreach design tokens. Generated from the design system. Do not hand-edit values; change them in the design system and re-export. */
+
+@font-face { font-family: 'Plus Jakarta Sans'; src: url('../fonts/PlusJakartaSans-400.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Plus Jakarta Sans'; src: url('../fonts/PlusJakartaSans-500.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Plus Jakarta Sans'; src: url('../fonts/PlusJakartaSans-600.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Plus Jakarta Sans'; src: url('../fonts/PlusJakartaSans-700.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Plus Jakarta Sans'; src: url('../fonts/PlusJakartaSans-800.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../fonts/JetBrainsMono-400.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../fonts/JetBrainsMono-500.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+
+/* Dark is the default theme. */
+:root,
+[data-theme="dark"] {
+  --canvas: #0a0b0f;
+  --surface: #15171c;
+  --surface-sunken: #1d2027;
+  --surface-hover: #1f232b;
+  --line: #262a33;
+  --line-control: #5c6477;
+  --ink: #f4f6fa;
+  --ink-2: #c3c8d2;
+  --ink-muted: #8b92a1;
+  --brand: #3358ff;
+  --brand-hover: #4a6bff;
+  --brand-soft: #18214a;
+  --brand-text: #8aa2ff;
+  --sidebar: #08090c;
+  --glass-top: #22252d;
+  --glass-edge: #2c303a;
+  --tip-bg: #2a2e37;
+  --tip-ink: #f4f6fa;
+  --tip-muted: #aab1bf;
+  --on-brand: #ffffff;
+  --accent: #f9af03;
+  --accent-soft: #2a2210;
+  --accent-ink: #fcc94d;
+  --success: #4ad08a;
+  --success-soft: #0f2a1d;
+  --warning: #f5a524;
+  --warning-soft: #2b1f0c;
+  --danger: #ff7a6e;
+  --danger-soft: #2f1513;
+  --neutral-soft: #23262e;
+  --focus: var(--brand-text);
+  --chart-muted: #2a2e37;
+  --brand-deep: #1d3fd8;
+  --chart-2: #7d97ff;
+  --chart-3: #f9af03;
+  --chart-grid: #1f232a;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-md: 0 12px 28px -8px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.8);
+  --glow-brand: 0 12px 40px -8px rgba(51, 88, 255, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  color-scheme: dark;
+}
+
+/* Light theme: set data-theme="light" on <html>. */
+[data-theme="light"] {
+  --canvas: #f6f7f9;
+  --surface: #ffffff;
+  --surface-sunken: #f2f4f7;
+  --surface-hover: #f8f9fb;
+  --line: #e6e8ec;
+  --line-control: #858fa1;
+  --ink: #0b1220;
+  --ink-2: #3b4558;
+  --ink-muted: #667085;
+  --brand: #0129ac;
+  --brand-hover: #00208a;
+  --brand-soft: #eef2fe;
+  --brand-text: #0129ac;
+  --sidebar: #ffffff;
+  --glass-top: #ffffff;
+  --glass-edge: #e6e8ec;
+  --tip-bg: #0b1220;
+  --tip-ink: #ffffff;
+  --tip-muted: #aab3c5;
+  --on-brand: #ffffff;
+  --accent: #f9af03;
+  --accent-soft: #fff6dc;
+  --accent-ink: #7a4f00;
+  --success: #067647;
+  --success-soft: #ecfdf3;
+  --warning: #b54708;
+  --warning-soft: #fffaeb;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --neutral-soft: #f2f4f7;
+  --focus: var(--brand);
+  --chart-muted: #e3e7ee;
+  --brand-deep: #001d7a;
+  --chart-2: #5b7cfa;
+  --chart-3: #f9af03;
+  --chart-grid: #eef0f3;
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.06), 0 8px 24px -12px rgba(16, 24, 40, 0.10), inset 0 1px 0 rgba(255, 255, 255, 1);
+  --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+  --shadow-lg: 0 12px 24px -6px rgba(16, 24, 40, 0.12), 0 4px 8px -4px rgba(16, 24, 40, 0.05);
+  --glow-brand: 0 12px 32px -10px rgba(1, 41, 172, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  color-scheme: light;
+}
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --font-sans: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+/* Text styles */
+.text-metric-xl { font-family: var(--font-sans); font-size: 36px; line-height: 40px; font-weight: 700; letter-spacing: -0.03em; }
+.text-metric { font-family: var(--font-sans); font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.025em; }
+.text-page-title { font-family: var(--font-sans); font-size: 26px; line-height: 34px; font-weight: 700; letter-spacing: -0.02em; }
+.text-section-title { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.text-body { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+.text-body-strong { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 500; }
+.text-small { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
+.text-label { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.01em; }
+.text-overline { font-family: var(--font-sans); font-size: 11px; line-height: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.text-code { font-family: var(--font-mono); font-size: 13px; line-height: 18px; font-weight: 400; }
+
+html, body { background: var(--canvas); color: var(--ink-2); }

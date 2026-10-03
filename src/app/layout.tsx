@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource/inter/400.css";
-import "@fontsource/inter/500.css";
-import "@fontsource/inter/600.css";
-import "@fontsource/inter/700.css";
 import "./globals.css";
 import "./workspace.css";
+import "../../public/ui-kit/css/tokens.css";
+import "../../public/ui-kit/css/components.css";
+import "./ui-kit.css";
 import { Providers } from "@/components/providers";
 import { PwaInstall } from "@/components/pwa-install";
 export const metadata: Metadata = {
@@ -28,8 +27,13 @@ export const viewport: Viewport = {
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" data-theme="dark" data-theme-pref="dark" suppressHydrationWarning>
+      <head>
+        {/* Blocking bootstrap applies the saved theme before the first paint. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/ui-kit/js/theme.js" />
+      </head>
+      <body className="ro">
         <Providers>{children}</Providers>
         <PwaInstall />
       </body>

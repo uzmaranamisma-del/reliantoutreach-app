@@ -31,6 +31,7 @@ model User {
   image String? @db.Text
   superadmin Boolean @default(false)
   disabled Boolean @default(false)
+  themePreference String @default("dark") @map("theme_preference") @db.VarChar(10)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sessions Session[]

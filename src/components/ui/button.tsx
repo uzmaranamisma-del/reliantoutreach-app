@@ -2,15 +2,15 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-const styles = cva("button", {
+const styles = cva("button ro-btn", {
   variants: {
     variant: {
-      default: "button-primary",
-      outline: "button-outline",
-      ghost: "button-ghost",
-      destructive: "button-danger",
+      default: "button-primary ro-btn--primary",
+      outline: "button-outline ro-btn--secondary",
+      ghost: "button-ghost ro-btn--ghost",
+      destructive: "button-danger ro-btn--danger",
     },
-    size: { default: "", sm: "button-small" },
+    size: { default: "", sm: "button-small ro-btn--sm" },
   },
   defaultVariants: { variant: "default", size: "default" },
 });
