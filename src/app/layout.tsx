@@ -5,6 +5,7 @@ import "../../public/ui-kit/css/tokens.css";
 import "../../public/ui-kit/css/components.css";
 import "./ui-kit.css";
 import "./auth.css";
+import "./ai-workspace.css";
 import { Providers } from "@/components/providers";
 import { PwaRegistration } from "@/components/pwa-registration";
 export const metadata: Metadata = {

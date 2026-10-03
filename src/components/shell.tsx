@@ -28,6 +28,7 @@ import {
   X,
   Bell,
   Search,
+  Sparkles,
 } from "lucide-react";
 import { api } from "@/lib/browser-api";
 import { Button } from "./ui/button";
@@ -37,6 +38,7 @@ const clientNav = [
   ["Dashboard", "", LayoutDashboard, ""],
   ["Campaigns", "campaigns", Send, "campaigns.view"],
   ["Inbox", "inbox", Inbox, "inbox.view"],
+  ["AI Workspace", "ai-workspace", Sparkles, ""],
   ["Prospects", "prospects", Users, "prospects.view"],
   ["Lists", "lists", FolderOpen, "lists.manage"],
   ["Senders", "senders", Mail, "senders.view"],

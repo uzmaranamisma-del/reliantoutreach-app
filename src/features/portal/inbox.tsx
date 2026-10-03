@@ -22,6 +22,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useContext, useLive } from "./hooks";
 import { draftKey, groupConversations } from "@/lib/conversations";
+import { AiInboxNotice, AiReplyAssistant } from "./ai-assistant";
 
 export function Inbox() {
   const { data: ctx } = useContext(),
@@ -310,6 +311,7 @@ export function Inbox() {
                     <p>{selected.subject}</p>
                   </div>
                 </div>
+                <AiInboxNotice />
                 <details className="conversation-options">
                   <summary>
                     <SlidersHorizontal size={17} />
@@ -484,6 +486,7 @@ export function Inbox() {
               )}
               {ctx?.permissions["inbox.reply"] && (
                 <div className="reply-composer">
+                  <AiReplyAssistant key={draftStorageKey} draft={body} />
                   <label htmlFor="reply">Reply to {selected.fromEmail}</label>
                   <div className="composer-input-row">
                     <textarea

@@ -24,10 +24,16 @@ import { getBranding, saveBranding } from "@/server/settings";
 import { queueOnboarding, onboardingStatus } from "@/server/onboarding";
 import { processJobs } from "@/server/jobs";
 import { clientPreviewData } from "@/server/client-preview-data";
+import { readAiWorkspace } from "@/server/ai-workspace";
 export const GET = endpoint(async (request, context) => {
   await admin(request);
   const { path } = await context.params;
   const [section, id] = path;
+  if (section === "clients" && id && path[2] === "ai-workspace") {
+    if (!(await db.client.findUnique({ where: { id }, select: { id: true } })))
+      throw new AppError(404, "Client not found.");
+    return readAiWorkspace(id);
+  }
   if (section === "clients" && id && path[2] === "sync")
     return onboardingStatus(id);
   if (section === "clients" && id && path[2] === "preview") {

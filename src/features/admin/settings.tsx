@@ -7,6 +7,7 @@ import { useLive } from "@/features/portal/hooks";
 import { api } from "@/lib/browser-api";
 import type { Branding } from "@/lib/branding";
 import { Appearance } from "@/components/appearance";
+import { AiConnectionNotice } from "@/features/portal/ai-workspace";
 export function AdminSettings() {
   const q = useLive("/api/admin/settings");
   return (
@@ -16,6 +17,11 @@ export function AdminSettings() {
         description="Manage your workspace name, support contact and policy links."
       />
       <Appearance />
+      <section className="panel content-panel ai-admin-setup">
+        <h2>AI platform setup</h2>
+        <AiConnectionNotice />
+        <p>Clients can prepare business knowledge and reply preferences in AI Workspace. Provider connection and AI processing are not enabled in this release.</p>
+      </section>
       {q.error ? (
         <ErrorBox error={q.error} />
       ) : q.data ? (

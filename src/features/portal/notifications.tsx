@@ -4,6 +4,8 @@ import { DataTable, ErrorBox, PageTitle, Refresh } from "@/components/data";
 import { Button } from "@/components/ui/button";
 import { useLive } from "./hooks";
 import { api } from "@/lib/browser-api";
+import Link from "next/link";
+import { Sparkles } from "lucide-react";
 export function Notifications() {
   const [page, setPage] = useState(1),
     [error, setError] = useState(""),
@@ -17,6 +19,7 @@ export function Notifications() {
       >
         <Refresh onClick={() => q.refetch()} busy={q.isFetching} />
       </PageTitle>
+      <div className="ai-connection"><Sparkles size={19} /><div><strong>Priority alerts · setup mode</strong><p>Prepare which reply categories matter most. AI priority alerts are not active yet.</p><Link href="/app/ai-workspace" className="ai-back-link">Prepare AI Workspace</Link></div></div>
       {error && <ErrorBox error={error} />}
       <DataTable
         rows={q.data?.items || []}

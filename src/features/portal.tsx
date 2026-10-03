@@ -7,6 +7,7 @@ import { Inbox } from "./portal/inbox";
 import { Resources } from "./portal/resources";
 import { Settings, Team, Usage } from "./portal/workspace";
 import { Notifications } from "./portal/notifications";
+import { AiWorkspace } from "./portal/ai-workspace";
 export { useLive } from "./portal/hooks";
 export function Portal({ path }: { path: string[] }) {
   const section = path[0] || "dashboard";
@@ -16,6 +17,7 @@ export function Portal({ path }: { path: string[] }) {
   if (["campaigns", "prospects", "lists", "senders"].includes(section))
     return <Resources key={section} kind={section} />;
   if (section === "inbox") return <Inbox />;
+  if (section === "ai-workspace") return <AiWorkspace />;
   if (section === "analytics") return <Analytics />;
   if (section === "usage") return <Usage />;
   if (section === "team") return <Team />;

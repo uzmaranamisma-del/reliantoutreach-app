@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import mariadb from "mariadb";
+import { defaultAiProfile } from "../../src/lib/ai-workspace";
 const databaseUrl = new URL(
   process.env.DATABASE_URL || "mysql://none:none@127.0.0.1/none",
 );
@@ -87,6 +88,18 @@ test("real login, tenant isolation, read-only permission and personal acknowledg
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/app/, { timeout: 25000 });
   const origin = new URL(page.url()).origin;
+  const readOnlyAi = await (
+    await page.request.get("/api/portal/ai-workspace")
+  ).json();
+  expect(readOnlyAi).toMatchObject({ status: "not_connected", canEdit: false });
+  expect(
+    (
+      await page.request.post("/api/portal/ai-workspace", {
+        headers: { Origin: origin },
+        data: { profile: defaultAiProfile, revision: 0 },
+      })
+    ).status(),
+  ).toBe(403);
   expect(
     (
       await page.request.post("/api/me/preferences", {
@@ -164,6 +177,69 @@ test("real login, tenant isolation, read-only permission and personal acknowledg
     "UPDATE ClientMembership SET role='CLIENT_OWNER' WHERE userId=? AND clientId=?",
     [userId, clientId],
   );
+  await page.goto("/app/ai-workspace");
+  await expect(
+    page.getByRole("heading", { name: "AI Workspace", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("AI not connected", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("About your business", { exact: false })
+    .fill("Test business context");
+  await page
+    .getByLabel("Services & offer", { exact: false })
+    .fill("Approved test service");
+  await page.getByRole("button", { name: "Save setup", exact: true }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Setup saved" }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByLabel("About your business", { exact: false }),
+  ).toHaveValue("Test business context");
+  for (const width of test.info().project.name === "mobile"
+    ? [320, 390, 768]
+    : [1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/ai-workspace-${width}.png`,
+      fullPage: true,
+    });
+  }
+  await page
+    .getByRole("button", { name: "Priority alerts", exact: true })
+    .click();
+  await page.getByLabel("Future AI alert preference").selectOption("priority");
+  await page.getByRole("button", { name: "Save setup", exact: true }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Setup saved" }),
+  ).toBeVisible();
+  const savedAi = await (
+    await page.request.get(`/api/portal/ai-workspace?clientId=${otherId}`)
+  ).json();
+  expect(savedAi.profile.business).toBe("Test business context");
+  expect(savedAi.profile.alertPreference).toBe("priority");
+  expect(savedAi.status).toBe("not_connected");
+  expect(
+    (await pool.query("SELECT * FROM AiWorkspace WHERE clientId=?", [otherId]))
+      .length,
+  ).toBe(0);
+  expect(
+    (
+      await page.request.post("/api/portal/ai-workspace", {
+        headers: { Origin: origin },
+        data: { profile: defaultAiProfile, revision: 1 },
+      })
+    ).status(),
+  ).toBe(409);
+  if (test.info().project.name === "mobile")
+    await page.setViewportSize({ width: 390, height: 844 });
   await pool.query(
     "INSERT INTO ConversationMeta (id,clientId,fromEmail,notes,status,updatedAt) VALUES (?,?,'alice@example.test','Alice only','MEETING',NOW())",
     [randomUUID(), clientId],
@@ -215,6 +291,20 @@ test("real login, tenant isolation, read-only permission and personal acknowledg
   await expect(page.locator("button.conversation")).toHaveCount(2);
   await page.getByRole("button", { name: /Latest Alice/ }).click();
   await page.locator("#reply").fill("Saved Alice draft");
+  await page.getByRole("button", { name: /AI reply assistant/ }).click();
+  await expect(
+    page.getByRole("button", { name: "Generate draft", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Shorten", exact: true }).click();
+  await expect(
+    page.getByText("No AI response has been generated."),
+  ).toBeVisible();
+  await page.screenshot({
+    path: `test-results/ai-assistant-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page.locator("#reply")).toHaveValue("Saved Alice draft");
   await page.getByText("Conversation details", { exact: true }).click();
   await expect(page.getByLabel("Internal notes")).toHaveValue("Alice only");
   if (await page.getByRole("button", { name: "Back to replies" }).isVisible())

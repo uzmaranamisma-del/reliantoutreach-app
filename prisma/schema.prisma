@@ -109,6 +109,7 @@ model Client {
   invitations Invitation[]
   conversationMeta ConversationMeta[]
   campaignTemplates CampaignTemplate[]
+  aiWorkspace AiWorkspace?
   pushSubscriptions PushSubscription[]
   @@index([status, createdAt])
   @@index([packageId])
@@ -291,6 +292,14 @@ model ReplyEvent {
   createdAt DateTime @default(now())
   @@index([queued, createdAt])
 }
+model AiWorkspace {
+  clientId String @id
+  profile Json
+  revision Int @default(1)
+  updatedAt DateTime @updatedAt
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
 model ConversationMeta {
   id String @id @default(cuid())
   clientId String

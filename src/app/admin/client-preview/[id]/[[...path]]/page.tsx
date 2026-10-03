@@ -5,6 +5,7 @@ import { permissions, getEffectivePermission } from "@/lib/permissions";
 import { Shell } from "@/components/shell";
 import { Dashboard } from "@/features/portal/dashboard";
 import { PreviewPortal } from "@/features/portal/preview";
+import { AiWorkspace } from "@/features/portal/ai-workspace";
 import type { ClientPreview } from "@/lib/client-preview";
 export const dynamic = "force-dynamic";
 export default async function Page({
@@ -72,6 +73,8 @@ export default async function Page({
     <Shell name={who.user.name} preview={preview}>
       {section === "dashboard" ? (
         <Dashboard preview={preview} />
+      ) : section === "ai-workspace" ? (
+        <AiWorkspace previewId={id} />
       ) : (
         <PreviewPortal preview={preview} section={section} />
       )}
