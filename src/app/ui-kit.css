@@ -593,6 +593,15 @@ body.ro {
   font-weight: 600;
 }
 @media (max-width: 700px) {
+  .ro .ro-table td .ro-badge {
+    justify-self: start;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    height: auto;
+    padding: 3px 8px;
+    line-height: 1.5;
+  }
   .service-grid {
     grid-template-columns: minmax(0, 1fr);
   }
