@@ -29,13 +29,29 @@ body.ro {
 }
 .ro .auth-story .eyebrow,
 .ro .auth-story p,
-.ro .auth-story .auth-foot,
-.ro .auth-story .story-line > span {
+.ro .auth-story .auth-foot {
   color: var(--on-brand);
 }
+.ro .auth-story .story-line {
+  gap: 14px;
+  line-height: 1.5;
+}
 .ro .auth-story .story-line > span {
-  border-color: color-mix(in srgb, var(--on-brand) 40%, transparent);
-  background: color-mix(in srgb, var(--on-brand) 8%, transparent);
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--on-brand);
+  color: var(--brand-deep);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.ro .auth-story .story-line > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .ro .auth-form label {
   color: var(--ink-2);
