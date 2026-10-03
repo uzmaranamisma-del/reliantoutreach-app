@@ -83,16 +83,14 @@ export function AuthForm({
     <main className="auth-layout">
       <section className="auth-story">
         <Link href="/login" className="brand">
-          <span className="brand-logo-frame">
-            <Image
-              className="brand-logo"
-              src="/brand-logo.png"
-              alt="ReliantOutreach"
-              width={2172}
-              height={724}
-              priority
-            />
-          </span>
+          <Image
+            className="auth-wordmark"
+            src="/ui-kit/logos/reliantoutreach-logo-white.svg"
+            alt="ReliantOutreach"
+            width={210}
+            height={26}
+            priority
+          />
         </Link>
         <div>
           <span className="eyebrow">YOUR OUTREACH. ONE WORKSPACE.</span>

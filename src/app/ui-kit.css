@@ -14,6 +14,39 @@ body.ro {
   background: var(--canvas);
   color: var(--ink-2);
 }
+.ro .auth-story {
+  background: linear-gradient(145deg, var(--brand-deep), var(--brand));
+}
+.ro .auth-wordmark {
+  display: block;
+  width: 210px;
+  max-width: 100%;
+  height: auto;
+}
+.ro .auth-story h1,
+.ro .auth-story .story-line {
+  color: var(--on-brand);
+}
+.ro .auth-story .eyebrow,
+.ro .auth-story p,
+.ro .auth-story .auth-foot,
+.ro .auth-story .story-line > span {
+  color: var(--on-brand);
+}
+.ro .auth-story .story-line > span {
+  border-color: color-mix(in srgb, var(--on-brand) 40%, transparent);
+  background: color-mix(in srgb, var(--on-brand) 8%, transparent);
+}
+.ro .auth-form label {
+  color: var(--ink-2);
+}
+.ro .auth-icon {
+  color: var(--brand-text);
+  background: var(--brand-soft);
+}
+.ro .auth-form .button {
+  min-height: 44px;
+}
 .ro h1,
 .ro h2,
 .ro h3,

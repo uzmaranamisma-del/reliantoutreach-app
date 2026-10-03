@@ -1054,13 +1054,6 @@ td {
   .mobile-bottom-nav > .active svg {
     stroke-width: 2.3;
   }
-  .pwa-install-action {
-    position: static;
-    display: block;
-    margin: 12px auto calc(88px + env(safe-area-inset-bottom));
-    min-height: 44px;
-    max-width: calc(100% - 32px);
-  }
   .pwa-actions {
     margin: 0 0 15px;
     width: 100%;
@@ -1180,8 +1173,7 @@ td {
   .shell:has(.inbox-thread-open) .mobile-bottom-nav,
   .shell:has(.inbox-thread-open) .impersonation,
   .shell:has(.inbox-thread-open) .pwa-actions,
-  .shell:has(.inbox-thread-open) .inbox-page-title,
-  body:has(.inbox-thread-open) > .pwa-install-action {
+  .shell:has(.inbox-thread-open) .inbox-page-title {
     display: none;
   }
   .shell:has(.inbox-thread-open) .main-shell {

@@ -5,7 +5,7 @@ import "../../public/ui-kit/css/tokens.css";
 import "../../public/ui-kit/css/components.css";
 import "./ui-kit.css";
 import { Providers } from "@/components/providers";
-import { PwaInstall } from "@/components/pwa-install";
+import { PwaRegistration } from "@/components/pwa-registration";
 export const metadata: Metadata = {
   title: { default: "ReliantOutreach", template: "%s · ReliantOutreach" },
   description: "Your outreach workspace.",
@@ -35,7 +35,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body className="ro">
         <Providers>{children}</Providers>
-        <PwaInstall />
+        <PwaRegistration />
       </body>
     </html>
   );

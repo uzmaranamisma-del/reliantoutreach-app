@@ -1616,50 +1616,6 @@ tbody tr:hover {
   font-weight: 600;
   cursor: pointer;
 }
-.pwa-install-action {
-  position: fixed;
-  left: 20px;
-  bottom: 20px;
-  z-index: 20;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 16px;
-  background: var(--blue);
-  color: var(--on-brand);
-  box-shadow: var(--shadow-card);
-  cursor: pointer;
-}
-.pwa-install-dialog {
-  width: min(440px, calc(100vw - 32px));
-  max-height: calc(100dvh - 48px);
-  overflow: auto;
-  margin: auto;
-  padding: 24px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  color: var(--brand-text);
-  background: var(--surface);
-}
-.pwa-install-dialog::backdrop {
-  background: var(--surface);
-}
-.pwa-install-dialog h2 {
-  font-size: 20px;
-  margin: 0 0 16px;
-}
-.pwa-install-dialog p {
-  font-size: 14px;
-  line-height: 1.6;
-  margin: 0 0 16px;
-}
-.pwa-install-dialog button {
-  border: 0;
-  border-radius: 8px;
-  padding: 10px 16px;
-  background: var(--blue);
-  color: var(--on-brand);
-  cursor: pointer;
-}
 .analytics-controls {
   display: flex;
   align-items: flex-end;
@@ -2587,12 +2543,6 @@ tbody tr:hover {
   .pwa-actions button {
     min-height: 44px;
     font-size: 13px;
-  }
-  .pwa-install-action {
-    position: static;
-    display: block;
-    margin: 12px auto calc(16px + env(safe-area-inset-bottom));
-    min-height: 44px;
   }
   .app-footer {
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
