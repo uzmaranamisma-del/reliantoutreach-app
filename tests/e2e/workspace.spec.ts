@@ -75,6 +75,7 @@ test.afterAll(async () => {
 });
 test("real login, tenant isolation, read-only permission and personal acknowledgments", async ({
   page,
+  playwright,
 }) => {
   test.setTimeout(180000);
   // Mock provider-backed reads only. Authentication and tested APIs use MySQL.
@@ -88,6 +89,37 @@ test("real login, tenant isolation, read-only permission and personal acknowledg
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/app/, { timeout: 25000 });
   const origin = new URL(page.url()).origin;
+  // Exercise the APK's cookie-free bearer flow against the isolated MySQL DB.
+  const signInClient = await playwright.request.newContext({ baseURL: origin });
+  const mobileLogin = await signInClient.post("/api/auth/sign-in/email", {
+    headers: { Origin: origin },
+    data: { email, password },
+  });
+  expect(mobileLogin.status()).toBe(200);
+  const signedToken = mobileLogin.headers()["set-auth-token"];
+  expect(signedToken).toBeTruthy();
+  await signInClient.dispose();
+  const nativeClient = await playwright.request.newContext({
+    baseURL: origin,
+    extraHTTPHeaders: { Authorization: `Bearer ${signedToken}`, Origin: origin },
+  });
+  try {
+    const workspaces = await (await nativeClient.get("/api/mobile/workspaces")).json();
+    expect(workspaces.items.map((item: any) => item.client.id)).toEqual([clientId]);
+    expect((await nativeClient.post("/api/mobile/workspace", { data: { clientId: otherId } })).status()).toBe(403);
+    expect((await nativeClient.post("/api/mobile/workspace", { data: { clientId } })).status()).toBe(200);
+    const mobileContext = await (await nativeClient.get("/api/mobile/context")).json();
+    expect(mobileContext.client.id).toBe(clientId);
+    expect(mobileContext.role).toBe("CLIENT_MEMBER");
+    expect(mobileContext.permissions["inbox.reply"]).toBe(false);
+    expect((await nativeClient.get("/api/mobile/plans")).status()).toBe(200);
+    expect((await nativeClient.get("/api/mobile/orders")).status()).toBe(200);
+    expect((await nativeClient.get("/api/admin/clients")).status()).toBe(403);
+    expect((await nativeClient.post("/api/auth/sign-out", { data: {} })).status()).toBe(200);
+    expect((await nativeClient.get("/api/mobile/context")).status()).toBe(401);
+  } finally {
+    await nativeClient.dispose();
+  }
   const readOnlyAi = await (
     await page.request.get("/api/portal/ai-workspace")
   ).json();
