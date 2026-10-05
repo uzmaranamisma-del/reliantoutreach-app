@@ -48,6 +48,11 @@ export function System() {
               ["Expired push alerts", q.data.expiredPush],
               ["Reply scan errors", q.data.replyScanErrors],
               ["Oldest queued alert", q.data.oldestPush?.createdAt || "None"],
+              ["Mobile push", q.data.nativePushEnabled ? "Enabled" : "Disabled"],
+              ["Mobile worker last run", q.data.nativePushWorker?.value?.at || "Never"],
+              ["Registered mobile devices", q.data.nativeDevices],
+              ["Pending mobile alerts", q.data.nativePushPending],
+              ["Mobile alerts needing review", q.data.nativePushIssues],
             ].map(([label, value]) => (
               <div className="panel health-card" key={label}>
                 <span>{label}</span>

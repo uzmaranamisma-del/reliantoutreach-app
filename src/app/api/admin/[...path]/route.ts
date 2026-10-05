@@ -26,6 +26,7 @@ import { processJobs } from "@/server/jobs";
 import { clientPreviewData } from "@/server/client-preview-data";
 import { readAiWorkspace } from "@/server/ai-workspace";
 import { listPackageRequests, updatePackageRequest } from "@/server/package-requests";
+import { nativePushConfigured } from "@/server/native-push";
 export const GET = endpoint(async (request, context) => {
   await admin(request);
   const { path } = await context.params;
@@ -267,6 +268,11 @@ export const GET = endpoint(async (request, context) => {
       failedJobs: await db.backgroundJob.count({ where: { status: "failed" } }),
       pendingPush: await db.pushDelivery.count({ where: { status: "pending" } }),
       expiredPush: await db.pushDelivery.count({ where: { status: "expired" } }),
+      nativePushEnabled: nativePushConfigured(),
+      nativePushWorker: await db.appSetting.findUnique({ where: { key: "native-push:last-run" } }),
+      nativeDevices: await db.nativeDevice.count(),
+      nativePushPending: await db.nativePushDelivery.count({ where: { status: { in: ["pending", "sending", "ticket"] } } }),
+      nativePushIssues: await db.nativePushDelivery.count({ where: { status: { in: ["failed", "uncertain", "expired"] } } }),
       replyScanErrors: await db.replyScan.count({ where: { lastError: { not: null } } }),
       oldestPush: await db.pushDelivery.findFirst({ where: { status: "pending" }, orderBy: { createdAt: "asc" }, select: { createdAt: true, lastError: true } }),
       webhook: "Disabled — authenticity contract unverified",
