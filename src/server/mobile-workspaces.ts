@@ -43,6 +43,7 @@ export async function mobileWorkspaces(
 export async function ensureMobileWorkspace(
   user: MobileUser,
   clientId: string,
+  administratorSelected = false,
 ) {
   const where = { userId_clientId: { userId: user.id, clientId } };
   const member = await db.clientMembership.findUnique({
@@ -69,7 +70,7 @@ export async function ensureMobileWorkspace(
     const eligible = await db.client.findFirst({
       where: {
         id: clientId,
-        email: user.email,
+        ...(administratorSelected ? {} : { email: user.email }),
         status: "ACTIVE",
         mapping: { is: { providerType: "organization" } },
       },
@@ -89,7 +90,7 @@ export async function ensureMobileWorkspace(
         !client ||
         client.status !== "ACTIVE" ||
         client.mapping?.providerType !== "organization" ||
-        client.email.toLowerCase() !== owner.email.toLowerCase()
+        (!administratorSelected && client.email.toLowerCase() !== owner.email.toLowerCase())
       )
         throw unavailable();
       const membership = await tx.clientMembership.create({

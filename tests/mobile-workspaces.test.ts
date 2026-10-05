@@ -181,3 +181,18 @@ it("honors the workspace team capacity", async () => {
   );
   expect(mock.db.$transaction).not.toHaveBeenCalled();
 });
+it("lets an authenticated administrator explicitly join a selected main account with a different contact email", async () => {
+  mock.db.client.findUnique.mockResolvedValue({ ...main, email: "main-contact@example.test" });
+  await ensureMobileWorkspace(user, "main", true);
+  expect(mock.db.clientMembership.create).toHaveBeenCalledWith({ data: { userId: user.id, clientId: "main", role: "CLIENT_OWNER" } });
+  expect(mock.db.client.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "main", status: "ACTIVE", mapping: { is: { providerType: "organization" } } } }));
+});
+it("does not allow ordinary users to self-enroll even with an explicit selection", async () => {
+  await expect(ensureMobileWorkspace({ ...user, superadmin: false }, "main", true)).rejects.toMatchObject({ status: 403 });
+  expect(mock.db.clientMembership.create).not.toHaveBeenCalled();
+});
+it.each([{ ...main, status: "SUSPENDED" }, { ...main, mapping: { providerType: "clientspace" } }])("keeps explicit admin enrollment restricted to active main accounts", async (client) => {
+  mock.db.client.findUnique.mockResolvedValue(client);
+  await expect(ensureMobileWorkspace(user, "main", true)).rejects.toMatchObject({ status: 403 });
+  expect(mock.db.clientMembership.create).not.toHaveBeenCalled();
+});

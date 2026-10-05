@@ -26,6 +26,7 @@ import { processJobs } from "@/server/jobs";
 import { clientPreviewData } from "@/server/client-preview-data";
 import { readAiWorkspace } from "@/server/ai-workspace";
 import { listPackageRequests, updatePackageRequest } from "@/server/package-requests";
+import { ensureMobileWorkspace } from "@/server/mobile-workspaces";
 export const GET = endpoint(async (request, context) => {
   await admin(request);
   const { path } = await context.params;
@@ -308,6 +309,11 @@ export const POST = endpoint(async (request, context) => {
   const { path } = await context.params;
   const [section, id, action] = path;
   const data = await json(request);
+  if (section === "clients" && id && action === "mobile-access") {
+    z.object({ confirm: z.literal(true) }).strict().parse(data);
+    await ensureMobileWorkspace(who.user, id, true);
+    return { ok: true };
+  }
   if (section === "clients" && id && action === "orders") return updatePackageRequest(id, who.user.id, data, true);
   if (section === "clients" && id && action === "sync")
     return queueOnboarding(who.user.id, id, data);
