@@ -23,7 +23,7 @@ import {
   ensureMobileWorkspace,
   mobileWorkspaces,
 } from "@/server/mobile-workspaces";
-const user = { id: "admin", email: "owner@example.test", superadmin: true };
+const user = { id: "admin", email: "owner@example.test", superadmin: true, emailVerified: true };
 const main = {
   id: "main",
   company: "My main account",
@@ -44,7 +44,7 @@ beforeEach(() => {
   mock.db.user.findUnique.mockResolvedValue({ ...user, disabled: false });
   mock.db.$transaction.mockImplementation((fn) => fn(mock.db));
 });
-it("lists only owned active main accounts without a previous membership and requires selection", async () => {
+it("lists active main accounts for administrators without a separate enable step", async () => {
   const result = await mobileWorkspaces(user, "main");
   expect(result.items).toEqual([
     { client: { id: main.id, company: main.company } },
@@ -53,7 +53,6 @@ it("lists only owned active main accounts without a previous membership and requ
   expect(mock.db.client.findMany).toHaveBeenCalledWith(
     expect.objectContaining({
       where: {
-        email: user.email,
         status: "ACTIVE",
         mapping: { is: { providerType: "organization" } },
         memberships: { none: { userId: user.id } },
@@ -70,8 +69,8 @@ it("keeps an existing selected membership active", async () => {
     "assigned",
   );
 });
-it("never discovers or auto-joins main accounts for normal client users", async () => {
-  const clientUser = { ...user, superadmin: false };
+it("does not discover or join main accounts for unverified client users", async () => {
+  const clientUser = { ...user, superadmin: false, emailVerified: false };
   expect((await mobileWorkspaces(clientUser, null)).items).toEqual([]);
   await expect(ensureMobileWorkspace(clientUser, "main")).rejects.toMatchObject(
     { status: 403 },
@@ -113,7 +112,6 @@ it("rejects guessed workspace IDs that do not match the main-account ownership q
     expect.objectContaining({
       where: {
         id: "other-client",
-        email: user.email,
         status: "ACTIVE",
         mapping: { is: { providerType: "organization" } },
       },
@@ -122,7 +120,6 @@ it("rejects guessed workspace IDs that do not match the main-account ownership q
   expect(mock.db.$transaction).not.toHaveBeenCalled();
 });
 it.each([
-  { ...main, email: "someone-else@example.test" },
   { ...main, status: "SUSPENDED" },
   { ...main, mapping: { providerType: "workspace" } },
   { ...main, mapping: null },
@@ -181,18 +178,43 @@ it("honors the workspace team capacity", async () => {
   );
   expect(mock.db.$transaction).not.toHaveBeenCalled();
 });
-it("lets an authenticated administrator explicitly join a selected main account with a different contact email", async () => {
-  mock.db.client.findUnique.mockResolvedValue({ ...main, email: "main-contact@example.test" });
-  await ensureMobileWorkspace(user, "main", true);
-  expect(mock.db.clientMembership.create).toHaveBeenCalledWith({ data: { userId: user.id, clientId: "main", role: "CLIENT_OWNER" } });
-  expect(mock.db.client.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "main", status: "ACTIVE", mapping: { is: { providerType: "organization" } } } }));
+it("discovers only the verified client's own main account", async () => {
+  await mobileWorkspaces({ ...user, superadmin: false }, null);
+  expect(mock.db.client.findMany).toHaveBeenCalledWith(expect.objectContaining({
+    where: {
+      email: user.email,
+      status: "ACTIVE",
+      mapping: { is: { providerType: "organization" } },
+      memberships: { none: { userId: user.id } },
+    },
+  }));
 });
-it("does not allow ordinary users to self-enroll even with an explicit selection", async () => {
-  await expect(ensureMobileWorkspace({ ...user, superadmin: false }, "main", true)).rejects.toMatchObject({ status: 403 });
+it("lets a verified existing owner join without a fresh invitation or admin enable action", async () => {
+  const owner = { ...user, superadmin: false };
+  mock.db.user.findUnique.mockResolvedValue({ ...owner, disabled: false });
+  await ensureMobileWorkspace(owner, "main");
+  expect(mock.db.clientMembership.create).toHaveBeenCalledWith({
+    data: { userId: owner.id, clientId: "main", role: "CLIENT_OWNER" },
+  });
+  expect(mock.db.client.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+    where: { id: "main", email: owner.email, status: "ACTIVE", mapping: { is: { providerType: "organization" } } },
+  }));
+});
+it("rejects a different contact email for ordinary client users", async () => {
+  const owner = { ...user, superadmin: false };
+  mock.db.user.findUnique.mockResolvedValue({ ...owner, disabled: false });
+  mock.db.client.findUnique.mockResolvedValue({ ...main, email: "another@example.test" });
+  await expect(ensureMobileWorkspace(owner, "main")).rejects.toMatchObject({ status: 403 });
   expect(mock.db.clientMembership.create).not.toHaveBeenCalled();
 });
-it.each([{ ...main, status: "SUSPENDED" }, { ...main, mapping: { providerType: "clientspace" } }])("keeps explicit admin enrollment restricted to active main accounts", async (client) => {
-  mock.db.client.findUnique.mockResolvedValue(client);
-  await expect(ensureMobileWorkspace(user, "main", true)).rejects.toMatchObject({ status: 403 });
+it("rechecks email verification before enrolling an ordinary owner", async () => {
+  const owner = { ...user, superadmin: false };
+  mock.db.user.findUnique.mockResolvedValue({ ...owner, emailVerified: false, disabled: false });
+  await expect(ensureMobileWorkspace(owner, "main")).rejects.toMatchObject({ status: 403 });
   expect(mock.db.clientMembership.create).not.toHaveBeenCalled();
+});
+it("allows administrators to use the main account even when its contact email differs", async () => {
+  mock.db.client.findUnique.mockResolvedValue({ ...main, email: "contact@example.test" });
+  await ensureMobileWorkspace(user, "main");
+  expect(mock.db.clientMembership.create).toHaveBeenCalledOnce();
 });

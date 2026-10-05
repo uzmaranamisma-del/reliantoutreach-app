@@ -3,7 +3,7 @@ import { AppError } from "@/lib/errors";
 import { withLease } from "@/lib/locks";
 import { teamCapacity } from "@/server/invitations";
 
-type MobileUser = { id: string; email: string; superadmin: boolean };
+type MobileUser = { id: string; email: string; superadmin: boolean; emailVerified: boolean };
 const clientSelect = { id: true, company: true } as const;
 const unavailable = () => new AppError(403, "Workspace access is unavailable.");
 
@@ -18,10 +18,10 @@ export async function mobileWorkspaces(
     select: { client: { select: clientSelect } },
     orderBy: { createdAt: "asc" },
   });
-  const mainAccounts = user.superadmin
+  const mainAccounts = user.superadmin || user.emailVerified
     ? await db.client.findMany({
         where: {
-          email: user.email,
+          ...(user.superadmin ? {} : { email: user.email }),
           status: "ACTIVE",
           mapping: { is: { providerType: "organization" } },
           // A revoked membership must never become a new access candidate.
@@ -43,7 +43,6 @@ export async function mobileWorkspaces(
 export async function ensureMobileWorkspace(
   user: MobileUser,
   clientId: string,
-  administratorSelected = false,
 ) {
   const where = { userId_clientId: { userId: user.id, clientId } };
   const member = await db.clientMembership.findUnique({
@@ -55,7 +54,7 @@ export async function ensureMobileWorkspace(
       throw unavailable();
     return; // Preserve an existing member's role and permissions.
   }
-  if (!user.superadmin) throw unavailable();
+  if (!user.superadmin && !user.emailVerified) throw unavailable();
 
   await withLease(`tenant:${clientId}`, async () => {
     const existing = await db.clientMembership.findUnique({
@@ -70,7 +69,7 @@ export async function ensureMobileWorkspace(
     const eligible = await db.client.findFirst({
       where: {
         id: clientId,
-        ...(administratorSelected ? {} : { email: user.email }),
+        ...(user.superadmin ? {} : { email: user.email }),
         status: "ACTIVE",
         mapping: { is: { providerType: "organization" } },
       },
@@ -85,12 +84,15 @@ export async function ensureMobileWorkspace(
         include: { mapping: true },
       });
       if (
-        !owner?.superadmin ||
+        !owner ||
         owner.disabled ||
         !client ||
         client.status !== "ACTIVE" ||
         client.mapping?.providerType !== "organization" ||
-        (!administratorSelected && client.email.toLowerCase() !== owner.email.toLowerCase())
+        // The client contact email is the administrator's assigned owner.
+        // An existing verified owner needs no second invitation or mobile toggle.
+        (!owner.superadmin && (!owner.emailVerified || client.email.toLowerCase() !== owner.email.toLowerCase())) ||
+        owner.superadmin !== user.superadmin
       )
         throw unavailable();
       const membership = await tx.clientMembership.create({

@@ -33,7 +33,6 @@ export function ClientDetail({ id }: { id: string }) {
     setError("");
     try {
       await api(`/api/admin/clients/${id}/${name}`, data);
-      if (name === "mobile-access") setNotice("Your existing login can now open this main account in the mobile app. Sign in again on your phone.");
       if (name === "pause-campaigns") setNotice("Campaign pause queued. Check Jobs for completion before assuming outreach has stopped.");
       if (name === "impersonate") {
         // Full navigation clears administrator queries when changing tenant context.
@@ -92,16 +91,6 @@ export function ClientDetail({ id }: { id: string }) {
       </PageTitle>
       {error && <ErrorBox error={error} />}
       {notice && <p className="notice" role="status">{notice}</p>}
-      {c.mapping?.providerType === "organization" && c.status === "ACTIVE" && (
-        <div className="notice">
-          <strong>Your main account on mobile</strong>
-          <p>Use your current administrator login in the client app for this main account. The mobile app keeps Inbox, Stats and Plans.</p>
-          <Button variant="outline" disabled={busy} onClick={() => {
-            if (window.confirm("Enable your current login for this main account in the mobile app? This adds your account as a workspace owner. The existing owner email stays unchanged.")) action("mobile-access", { confirm: true });
-          }}>Enable my mobile access</Button>{" "}
-          <Link href="/download">Get the app</Link>
-        </div>
-      )}
       {c.mapping && <p className="notice">Suspending access does not stop existing outreach. <Button variant="outline" disabled={busy} onClick={() => {
         if (window.confirm("Pause all running, scheduled and preparing campaigns in this connected Manyreach account? This will change live campaigns after background processing.")) action("pause-campaigns", { confirm: true, key: crypto.randomUUID() });
       }}>Pause live campaigns</Button></p>}
