@@ -29,6 +29,12 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Install mobile dependencies
+        run: npm ci
+        working-directory: apps/mobile
+      - name: Check mobile types and lint
+        run: npm run typecheck && npm run lint
+        working-directory: apps/mobile
       - run: npm run db:generate
       - run: npm run db:deploy
       - run: npm run typecheck
