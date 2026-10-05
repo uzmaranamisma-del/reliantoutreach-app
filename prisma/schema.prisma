@@ -38,6 +38,7 @@ model User {
   accounts Account[]
   memberships ClientMembership[]
   pushSubscriptions PushSubscription[]
+  nativeDevices NativeDevice[]
 }
 model Session {
   id String @id
@@ -52,6 +53,7 @@ model Session {
   activeClientId String?
   impersonatingClientId String?
   impersonationExpiresAt DateTime?
+  nativeDevices NativeDevice[]
   @@index([userId])
 }
 model Account {
@@ -111,6 +113,9 @@ model Client {
   campaignTemplates CampaignTemplate[]
   aiWorkspace AiWorkspace?
   pushSubscriptions PushSubscription[]
+  nativeDevices NativeDevice[]
+  packageRequests PackageRequest[]
+  mobileConversations MobileConversation[]
   @@index([status, createdAt])
   @@index([packageId])
 }
@@ -289,8 +294,73 @@ model ReplyEvent {
   id String @id @db.VarChar(64)
   clientId String
   queued Boolean @default(false)
+  conversationEmail String? @db.VarChar(254)
   createdAt DateTime @default(now())
   @@index([queued, createdAt])
+}
+
+model NativeDevice {
+  id String @id @default(cuid())
+  installationId String @unique @db.VarChar(36)
+  token String @unique @db.VarChar(255)
+  userId String
+  clientId String
+  sessionId String
+  platform String @db.VarChar(10)
+  replies Boolean @default(true)
+  orders Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  deliveries NativePushDelivery[]
+  @@index([clientId])
+}
+model NativePushDelivery {
+  id String @id @db.VarChar(64)
+  deviceId String
+  device NativeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  payload Json
+  kind String @db.VarChar(10)
+  status String @default("pending") @db.VarChar(20)
+  attempts Int @default(0)
+  runAfter DateTime @default(now())
+  expiresAt DateTime
+  receiptId String? @db.VarChar(100)
+  lastError String? @db.VarChar(100)
+  createdAt DateTime @default(now())
+  @@index([status, runAfter])
+}
+model MobileConversation {
+  id String @id @default(cuid())
+  clientId String
+  userId String
+  email String @db.VarChar(254)
+  readAt DateTime?
+  starred Boolean @default(false)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([clientId, userId, email])
+}
+model PackageRequest {
+  id String @id @default(cuid())
+  clientId String
+  requestedBy String
+  packageId String
+  packageName String
+  price String
+  currency String
+  setupPrice String
+  requestKey String @db.VarChar(36)
+  status String @default("pending_review") @db.VarChar(20)
+  notificationPending Boolean @default(false)
+  note String? @db.Text
+  history Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([clientId, requestKey])
+  @@index([clientId, createdAt])
 }
 model AiWorkspace {
   clientId String @id

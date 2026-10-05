@@ -57,7 +57,7 @@ async function deliverNotification(data) {
 
   await self.registration.showNotification(data.title || "ReliantOutreach", {
     body: data.body || "You have a new workspace update.",
-    icon: "/app-icon-192.png",
+    icon: "/android-chrome-192x192.png",
     tag: eventId || "reliantoutreach-update",
     renotify: false,
     data: { url: data.url || "/app/notifications" },

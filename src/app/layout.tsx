@@ -13,7 +13,15 @@ export const metadata: Metadata = {
   description: "Your outreach workspace.",
   robots: { index: false, follow: false },
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/app-icon-192.png", apple: "/apple-touch-icon.png" },
+  icons: {
+    icon: [
+      { url: "/favicon.svg?v=20261005", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png?v=20261005", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png?v=20261005", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico?v=20261005",
+    apple: { url: "/apple-touch-icon.png?v=20261005", sizes: "180x180", type: "image/png" },
+  },
   appleWebApp: {
     capable: true,
     title: "ReliantOutreach",

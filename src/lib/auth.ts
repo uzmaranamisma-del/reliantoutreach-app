@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { bearer } from "better-auth/plugins";
 import { db } from "@/lib/db";
 import { sendMail } from "@/lib/mail";
 function createAuth() {
@@ -10,6 +11,7 @@ function createAuth() {
     baseURL: process.env.NEXT_PUBLIC_APP_URL,
     secret: process.env.AUTH_SECRET,
     database: prismaAdapter(db, { provider: "mysql" }),
+    plugins: [bearer({ requireSignature: true })],
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,

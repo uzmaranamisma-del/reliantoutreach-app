@@ -4,6 +4,7 @@ import { processJobs, scheduleReconciliation } from "@/server/jobs";
 import { collectReplyAlerts } from "@/server/reply-alerts";
 import { processPushDeliveries } from "@/server/push";
 import { collectMonthlyUsage } from "@/server/monthly-usage";
+import { processNativePush } from "@/server/native-push";
 export const runtime = "nodejs";
 export const POST = endpoint(async (request) => {
   if (
@@ -19,6 +20,7 @@ export const POST = endpoint(async (request) => {
   for (const [name, run] of [
     ["replies", collectReplyAlerts],
     ["push", processPushDeliveries],
+    ["nativePush", processNativePush],
     ["jobs", async () => { await scheduleReconciliation(); return processJobs(); }],
     ["usage", collectMonthlyUsage],
   ] as const) {

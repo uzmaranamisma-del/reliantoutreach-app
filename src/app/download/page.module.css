@@ -1,0 +1,31 @@
+.page { min-height: 100dvh; background: radial-gradient(ellipse at 5% 35%, #122254, transparent 60%), #090d18; color: #f4f6ff; padding: 28px; }
+.shell { max-width: 1120px; margin: 0 auto; }
+.header { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.brand { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 750; color: #fff; text-decoration: none; }
+.brand img, .icon { border-radius: 14px; }
+.portal { display: flex; gap: 8px; align-items: center; color: #cad4ff; text-decoration: none; font-size: 14px; padding: 12px 0; }
+.hero { display: grid; grid-template-columns: 1.15fr 1fr; align-items: center; gap: 64px; padding: 80px 0 48px; }
+.eyebrow { color: #a9bafb; font-size: 11px; font-weight: 700; letter-spacing: .15em; }
+.copy h1 { font-size: clamp(34px, 4vw, 52px); line-height: 1.12; letter-spacing: -.045em; margin: 22px 0; font-weight: 750; }
+.copy h1 span { color: #ffbd00; }
+.copy > p { color: #b8c1d8; font-size: 16px; line-height: 1.8; max-width: 430px; }
+.features { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+.features span { display: inline-flex; gap: 8px; align-items: center; font-size: 12px; padding: 10px 12px; border: 1px solid #334267; border-radius: 24px; color: #d5defa; }
+.card { padding: 30px; background: #151b2b; border: 1px solid #2a344d; border-radius: 24px; box-shadow: 0 24px 80px #0003; }
+.card h2 { font-size: 25px; margin: 24px 0 8px; color: #fff; letter-spacing: -.035em; }
+.card > p { color: #b6bfd4; font-size: 13px; line-height: 1.7; }
+.download { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 24px 0; padding: 16px; background: #3358ff; color: white; border-radius: 12px; text-decoration: none; font-weight: 650; }
+.download:hover { background: #4569ff; }
+.card ol { padding-left: 20px; color: #e0e6f6; font-size: 14px; line-height: 1.7; }
+.card li + li { margin-top: 9px; }
+.card .note { margin-top: 18px; }
+.ios { border-top: 1px solid #30394e; margin-top: 24px; padding-top: 20px; font-size: 14px; }
+.ios p { margin: 8px 0 0; color: #b6bfd4; font-size: 13px; line-height: 1.7; }
+.ios a { color: #b3c2ff; text-decoration: underline; }
+.ios svg { display: inline; vertical-align: middle; }
+.card .notice { margin-top: 20px; padding: 12px; background: #222735; border-radius: 10px; font-size: 12px; }
+.footer { color: #8f9bb8; font-size: 13px; padding: 12px 0 24px; }
+.footer a { color: #becbff; }
+.page a:focus-visible { outline: 3px solid #ffbd00; outline-offset: 5px; }
+@media (max-width: 760px) { .page { padding: 20px; } .hero { grid-template-columns: 1fr; gap: 30px; padding: 48px 0 24px; } .copy h1 { font-size: 38px; } .card { padding: 24px; } .brand { font-size: 17px; gap: 9px; } .brand img { width: 32px; height: 32px; } .portal { font-size: 12px; } .footer { text-align: center; } }
+@media (max-width: 360px) { .page { padding: 16px; } .copy h1 { font-size: 32px; } .card { padding: 20px; } .brand { font-size: 15px; } }

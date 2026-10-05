@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { forClient, type ProviderPage } from "@/lib/manyreach/client";
 import { withLease } from "@/lib/locks";
 import { sendPushNotification } from "./push";
+import { queueNativePush } from "./native-push";
 
 export const replyEventId = (clientId: string, messageId: string) =>
   createHash("sha256")
@@ -19,7 +20,7 @@ export async function collectReplyAlerts() {
         where: {
           status: "ACTIVE",
           mapping: { isNot: null },
-          pushSubscriptions: { some: {} },
+          OR: [{ pushSubscriptions: { some: {} } }, { nativeDevices: { some: { replies: true } } }],
         },
         select: { id: true },
       });
@@ -62,7 +63,7 @@ export async function collectReplyAlerts() {
               const id = replyEventId(scan.clientId, String(message.messageId));
               await db.replyEvent.upsert({
                 where: { id },
-                create: { id, clientId: scan.clientId },
+                create: { id, clientId: scan.clientId, conversationEmail: typeof message.fromEmail === "string" ? message.fromEmail.slice(0, 254).toLowerCase() : null },
                 update: {},
               });
             }
@@ -111,6 +112,7 @@ export async function collectReplyAlerts() {
           url: "/app/inbox",
           tag: `reply:${event.id}`,
         });
+        await queueNativePush({ clientId: event.clientId, eventId: event.id, kind: "reply" });
         await db.replyEvent.update({
           where: { id: event.id },
           data: { queued: true },

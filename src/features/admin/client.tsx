@@ -16,6 +16,7 @@ import { ArrowLeft, Eye, Mail } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ClientSync } from "./sync";
+import { PackageRequests } from "./package-requests";
 
 export function ClientDetail({ id }: { id: string }) {
   const q = useLive(`/api/admin/clients/${id}`),
@@ -145,6 +146,7 @@ export function ClientDetail({ id }: { id: string }) {
           providerType={c.mapping?.providerType}
         />
       </div>
+      <PackageRequests clientId={id} onActivated={() => q.refetch()} />
       <div className="section-title section-space">
         <h2>Members</h2>
         <Button

@@ -4,7 +4,7 @@ import ts from "eslint-config-next/typescript";
 export default defineConfig([
   ...next,
   ...ts,
-  globalIgnores([".next/**", "src/generated/**"]),
+  globalIgnores([".next/**", "src/generated/**", "apps/mobile/**", "design/**"]),
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
