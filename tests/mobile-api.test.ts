@@ -73,6 +73,14 @@ it("requires active membership before a workspace switch", async () => {
   ).toBe(403);
   expect(mock.db.$transaction).not.toHaveBeenCalled();
 });
+it("rejects stale push enrollment after a workspace switch", async () => {
+  const response = await POST(
+    request({ expectedClientId: "previous-client" }),
+    route("push"),
+  );
+  expect(response.status).toBe(409);
+  expect(mock.db.$transaction).not.toHaveBeenCalled();
+});
 it("preserves the web origin restriction for mobile writes", async () => {
   expect(
     (await POST(request({}, "https://evil.example.test"), route("workspace")))

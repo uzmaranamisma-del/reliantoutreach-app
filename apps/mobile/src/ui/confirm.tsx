@@ -9,6 +9,7 @@ export function Confirm({
   onCancel,
   onConfirm,
   action = "Confirm",
+  cancelLabel = "Cancel",
 }: {
   title: string;
   children: ReactNode;
@@ -17,6 +18,7 @@ export function Confirm({
   onCancel: () => void;
   onConfirm: () => void;
   action?: string;
+  cancelLabel?: string;
 }) {
   return (
     <Modal
@@ -43,7 +45,12 @@ export function Confirm({
           </Txt>
           {children}
           <Button title={action} busy={busy} onPress={onConfirm} />
-          <Button title="Cancel" secondary disabled={busy} onPress={onCancel} />
+          <Button
+            title={cancelLabel}
+            secondary
+            disabled={busy}
+            onPress={onCancel}
+          />
         </Card>
       </View>
     </Modal>

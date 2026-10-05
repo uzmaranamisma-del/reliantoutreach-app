@@ -3,13 +3,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowDownToLine, ArrowRight, Mail, BarChart3, Layers } from "lucide-react";
 import styles from "./page.module.css";
+import { androidRelease } from "@/lib/mobile-release";
 
 export const metadata: Metadata = {
   title: "Get the mobile app",
   description: "Download ReliantOutreach for Android. Your inbox, replies, statistics and plans in one place.",
 };
 
-const apk = "https://expo.dev/artifacts/eas/EQGq_h5L881Fm-kXqVEBjzMsVQ-rcTM9h-QCnunXKNw.apk";
 
 export default function DownloadPage() {
   return (
@@ -36,8 +36,8 @@ export default function DownloadPage() {
           <div className={styles.card}>
             <Image src="/android-chrome-192x192.png" width={72} height={72} alt="ReliantOutreach app icon" className={styles.icon} />
             <h2>Get the Android app</h2>
-            <p>Version 1.0.0 · Build 2 · Preview release</p>
-            <a className={styles.download} href={apk}><ArrowDownToLine size={20} /> Download for Android</a>
+            <p>Version {androidRelease.version} · Build {androidRelease.build} · Preview release</p>
+            <a className={styles.download} href={androidRelease.apk}><ArrowDownToLine size={20} /> Download for Android</a>
             <ol>
               <li>Download the APK on your Android phone.</li>
               <li>Open the file and follow Android’s installation prompts.</li>

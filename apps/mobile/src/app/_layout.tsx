@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Platform, AppState } from "react-native";
+import { Platform } from "react-native";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -10,42 +10,14 @@ import { ThemeProvider, useTheme } from "../ui/theme";
 import {
   initializeNotifications,
   notificationEvent,
-  registerPush,
 } from "../lib/notifications";
-import { storage } from "../lib/storage";
+import { AppAttention } from "../ui/app-attention";
 import { api } from "../lib/api";
 void SplashScreen.preventAutoHideAsync();
 void initializeNotifications();
 function Navigation() {
   const { context } = useSession(),
     { colors, mode } = useTheme();
-  useEffect(() => {
-    if (!context || Platform.OS === "web") return;
-    const scope = context.user.id + "." + context.client.id;
-    const reconnect = async () => {
-      if ((await storage.get("push.enabled." + scope)) !== "1") return;
-      try {
-        const prefs = JSON.parse(
-          (await storage.get("push.prefs." + scope)) ||
-            '{"replies":true,"orders":true}',
-        );
-        await registerPush(prefs);
-      } catch {
-        /* Settings displays delivery health; do not repeatedly prompt. */
-      }
-    };
-    void reconnect();
-    const app = AppState.addEventListener("change", (state) => {
-      if (state === "active") void reconnect();
-    });
-    const token = Notifications.addPushTokenListener(() => {
-      void reconnect();
-    });
-    return () => {
-      app.remove();
-      token.remove();
-    };
-  }, [context]);
   useEffect(() => {
     if (Platform.OS === "web" || !context) return;
     let alive = true;
@@ -109,6 +81,9 @@ function Navigation() {
         <Stack.Screen name="conversation" />
         <Stack.Screen name="account" />
       </Stack>
+      <AppAttention
+        key={context ? `${context.user.id}.${context.client.id}` : "signed-out"}
+      />
     </>
   );
 }

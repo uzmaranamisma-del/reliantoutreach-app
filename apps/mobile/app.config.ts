@@ -1,10 +1,12 @@
 import type { ExpoConfig } from "expo/config";
-const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || "feb20780-3420-405b-bc6e-69f7b6e608d9";
+const projectId =
+  process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
+  "feb20780-3420-405b-bc6e-69f7b6e608d9";
 const config: ExpoConfig = {
   name: "ReliantOutreach",
   slug: "reliantoutreach-team",
   owner: "reliantoutreach-team",
-  version: "1.0.0",
+  version: "1.0.1",
   scheme: "reliantoutreach",
   orientation: "default",
   userInterfaceStyle: "automatic",
@@ -41,6 +43,9 @@ const config: ExpoConfig = {
     ],
     ["expo-notifications", { color: "#3358ff", defaultChannel: "replies" }],
   ],
-  extra: { ...(projectId ? { eas: { projectId } } : {}) },
+  extra: {
+    androidPushConfigured: !!process.env.GOOGLE_SERVICES_JSON,
+    ...(projectId ? { eas: { projectId } } : {}),
+  },
 };
 export default config;

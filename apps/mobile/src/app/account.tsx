@@ -9,7 +9,15 @@ import {
   installationId,
   registerPush,
   clearDisplayedNotifications,
+  notificationPermission,
 } from "../lib/notifications";
+import {
+  checkAppRelease,
+  installedVersion,
+  installedBuild,
+  openAppDownload,
+} from "../lib/app-release";
+import type { MobileRelease } from "../lib/attention-policy";
 import { storage } from "../lib/storage";
 import type { PushStatus } from "../lib/types";
 import { useTheme } from "../ui/theme";
@@ -23,7 +31,20 @@ export default function Account() {
     [notice, setNotice] = useState(""),
     [signOut, setSignOut] = useState(false),
     [prefs, setPrefs] = useState({ replies: true, orders: true });
+  const [update, setUpdate] = useState<MobileRelease | null>(null);
   const scope = [context?.user.id, context?.client.id].join(".");
+  const permission = useQuery({
+    queryKey: ["phone-permission", scope],
+    queryFn: () => notificationPermission(),
+    enabled: !!context && Platform.OS !== "web",
+    refetchInterval: 30000,
+  });
+  const registration = useQuery({
+    queryKey: ["push-registration", scope],
+    queryFn: () => storage.get("push.error." + scope),
+    enabled: !!context,
+    refetchInterval: 30000,
+  });
   const status = useQuery({
     queryKey: ["push-status", scope],
     queryFn: async () =>
@@ -46,10 +67,18 @@ export default function Account() {
     setError("");
     setNotice("");
     try {
-      const result = await registerPush(next, true);
+      const result = await registerPush(
+        next,
+        true,
+        undefined,
+        context?.client.id,
+      );
       setPrefs(next);
       await storage.set("push.prefs." + scope, JSON.stringify(next));
       await storage.set("push.enabled." + scope, "1");
+      await storage.remove("push.error." + scope);
+      await permission.refetch();
+      await registration.refetch();
       await status.refetch();
       setNotice(
         result.configured
@@ -58,6 +87,7 @@ export default function Account() {
       );
     } catch (e) {
       setError((e as Error).message);
+      await permission.refetch();
     } finally {
       setBusy(false);
     }
@@ -69,7 +99,8 @@ export default function Account() {
       await api("/api/mobile/push/remove", {
         installationId: await installationId(),
       });
-      await storage.remove("push.enabled." + scope);
+      await storage.set("push.enabled." + scope, "0");
+      await storage.set("push.reminded", String(Date.now()));
       await clearDisplayedNotifications();
       await status.refetch();
       setNotice("Notifications disabled for this phone.");
@@ -117,6 +148,12 @@ export default function Account() {
           Reply alerts and package updates, even when the app is closed. Message
           content stays private on your lock screen.
         </Txt>
+        <Txt weight="bold">
+          {permission.data?.granted
+            ? "Phone permission: allowed"
+            : "Phone permission: off"}
+        </Txt>
+        <Notice message={registration.data || undefined} />
         {[
           { key: "replies" as const, label: "New replies" },
           { key: "orders" as const, label: "Package updates" },
@@ -178,6 +215,49 @@ export default function Account() {
               : status.data.scanError
                 ? "Reply collection needs attention. Your administrator can check the connection."
                 : "Notification worker is active."}
+        </Txt>
+      </Card>
+      <Card>
+        <Txt weight="bold" style={{ fontSize: 18 }}>
+          App updates
+        </Txt>
+        <Txt>
+          Version {installedVersion || "preview"} · Build{" "}
+          {installedBuild || "web"}
+        </Txt>
+        {update && (
+          <Txt>
+            Version {update.version} · Build {update.build} is available.{" "}
+            {update.notes}
+          </Txt>
+        )}
+        <Button
+          title="Check for updates"
+          secondary
+          busy={busy}
+          onPress={() =>
+            void run(async () => {
+              const next = await checkAppRelease();
+              setUpdate(next);
+              setNotice(
+                next
+                  ? "An update is ready to download."
+                  : Platform.OS === "android"
+                    ? "You're using the latest published Android build."
+                    : "Updates are managed through your app distribution service.",
+              );
+            })
+          }
+        />
+        {update && (
+          <Button
+            title="Get update"
+            onPress={() => void run(openAppDownload)}
+          />
+        )}
+        <Txt style={{ color: colors.muted, fontSize: 12 }}>
+          We&apos;ll also check when you open the app. Installing an update
+          requires your confirmation.
         </Txt>
       </Card>
       <Card>

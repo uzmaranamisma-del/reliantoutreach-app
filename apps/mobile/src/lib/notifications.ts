@@ -77,6 +77,8 @@ export async function installationId() {
 export async function registerPush(
   preferences: { replies: boolean; orders: boolean },
   askPermission = false,
+  isCurrent: () => boolean = () => true,
+  expectedClientId?: string,
 ) {
   if (Platform.OS === "web")
     throw new Error(
@@ -91,6 +93,40 @@ export async function registerPush(
     throw new Error(
       "Push setup is awaiting the Expo, Firebase and Apple account configuration.",
     );
+  const permission = await notificationPermission(askPermission);
+  if (!permission.granted)
+    throw new Error(
+      "Notifications are off. Enable them in your phone settings.",
+    );
+  if (
+    Platform.OS === "android" &&
+    !Constants.expoConfig?.extra?.androidPushConfigured
+  )
+    throw new Error(
+      "This app build is missing Android push setup. Install the notification-ready update when available.",
+    );
+  let result;
+  try {
+    result = await Notifications.getExpoPushTokenAsync({ projectId });
+  } catch {
+    throw new Error(
+      "This phone could not connect to the notification service. Check your connection and retry. If this continues, contact your administrator to check Firebase/APNs setup.",
+    );
+  }
+  const id = await installationId();
+  if (!isCurrent())
+    throw new Error(
+      "Workspace changed. Reconnect notifications in your current workspace.",
+    );
+  return api<{ configured: boolean }>("/api/mobile/push", {
+    installationId: id,
+    token: result.data,
+    platform: Platform.OS,
+    ...(expectedClientId ? { expectedClientId } : {}),
+    ...preferences,
+  });
+}
+export async function notificationPermission(ask = false) {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("replies", {
       name: "New replies",
@@ -106,19 +142,41 @@ export async function registerPush(
     });
   }
   let permission = await Notifications.getPermissionsAsync();
-  if (!permission.granted && askPermission && permission.canAskAgain)
+  if (!permission.granted && ask && permission.canAskAgain)
     permission = await Notifications.requestPermissionsAsync();
-  if (!permission.granted)
-    throw new Error(
-      "Notifications are off. Enable them in your phone settings.",
+  return permission;
+}
+export async function pushPreferences(scope: string) {
+  try {
+    const value = JSON.parse(
+      (await storage.get("push.prefs." + scope)) || "{}",
     );
-  const result = await Notifications.getExpoPushTokenAsync({ projectId });
-  return api<{ configured: boolean }>("/api/mobile/push", {
-    installationId: await installationId(),
-    token: result.data,
-    platform: Platform.OS,
-    ...preferences,
-  });
+    return { replies: value.replies !== false, orders: value.orders !== false };
+  } catch {
+    return { replies: true, orders: true };
+  }
+}
+export async function connectNotifications(
+  scope: string,
+  ask = false,
+  isCurrent = () => true,
+) {
+  try {
+    const result = await registerPush(
+      await pushPreferences(scope),
+      ask,
+      isCurrent,
+      scope.slice(scope.indexOf(".") + 1),
+    );
+    if (!isCurrent()) return result;
+    await storage.set("push.enabled." + scope, "1");
+    await storage.remove("push.error." + scope);
+    return result;
+  } catch (error) {
+    if (isCurrent())
+      await storage.set("push.error." + scope, (error as Error).message);
+    throw error;
+  }
 }
 export async function clearDisplayedNotifications() {
   if (Platform.OS !== "web") {

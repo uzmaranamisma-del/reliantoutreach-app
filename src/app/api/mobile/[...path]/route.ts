@@ -250,6 +250,18 @@ export const POST = endpoint(async (request, route) => {
     return requestPackage(ctx, input);
   }
   if (path[0] === "push") {
+    // Old APKs omit this. New apps bind registration to the workspace that
+    // requested permission, so a concurrent switch cannot enroll the wrong one.
+    const expectedClientId = z
+      .string()
+      .max(100)
+      .optional()
+      .parse(input.expectedClientId);
+    if (expectedClientId && expectedClientId !== clientId)
+      throw new AppError(
+        409,
+        "Workspace changed. Reconnect notifications in your current workspace.",
+      );
     const installationId = z.string().uuid().parse(input.installationId);
     if (path[1] === "remove") {
       await db.nativeDevice.deleteMany({

@@ -5,7 +5,7 @@ Native Expo / React Native app for Android and iPhone, connected to the existing
 ## Delivered in source
 
 - Branded login, secure signed session storage and client workspace selection.
-- Superadmins can use their own active main Manyreach account in the same client interface. The workspace owner email must match their login email and its verified connection must be `organization`. Selecting it creates an ordinary owner membership, subject to team capacity; existing disabled memberships remain blocked. No admin dashboard is added to the mobile app. This requires deploying the mobile backend, but no new APK for this access change.
+- Superadmins can use their own active main Manyreach account in the same client interface. Verified client owners can also open their own active main account when its contact email matches their login. The connection must be `organization`; superadmins can select active main accounts. Selecting it creates an ordinary owner membership, subject to team capacity; existing disabled memberships remain blocked. No admin dashboard is added to the mobile app. This requires deploying the mobile backend, but no new APK for this access change.
 - Virtualized inbox, latest loaded reply previews, unread/starred filters and scoped search.
 - Chat-style conversation, automatically paginated history, stable message keys and keyboard-aware composer.
 - Manual replies through the existing Manyreach integration, with confirmation and duplicate-submission protection. Uncertain responses keep the draft and ask the user to check the conversation.
@@ -14,11 +14,13 @@ Native Expo / React Native app for Android and iPhone, connected to the existing
 - Native visible push through Expo → FCM/APNs, a durable server queue, token rotation, receipts, backoff and stable collapse identifiers.
 - Dark/light themes, bundled brand fonts, safe areas, request cancellation and in-memory query caching.
 
-The Expo account is connected to `@reliantoutreach-team/reliantoutreach-team` (project ID `feb20780-3420-405b-bc6e-69f7b6e608d9`). Android preview build `a3b03fdb-35a1-4ec7-b5c5-fe132b81c68b` **succeeded on 2026-10-05**. The APK was downloaded to the task outputs as `ReliantOutreach-1.0.0-preview.apk`. Source/export output alone is not an APK/IPA. Firebase and Apple configuration and real closed-app delivery checks remain pending. The backend changes have not been deployed or migrated by this mobile implementation task; the live mobile context endpoint returned HTTP 404 on 2026-10-05. Physical-device installation and runtime checks are still pending.
+The Expo project is `@reliantoutreach-team/reliantoutreach-team` (ID `feb20780-3420-405b-bc6e-69f7b6e608d9`). Android build 2 is published at https://app.reliantoutreach.com/download and the mobile backend is deployed. Build 2 does **not** include Firebase configuration. Closed-app delivery is not ready until FCM credentials, a Firebase-enabled replacement APK, the server worker and a physical-device check are complete. Apple credentials and an iOS build remain pending.
 
-For subsequent Android APK builds on Windows, run `powershell.exe -ExecutionPolicy Bypass -File .\build-android.ps1` from this directory. It uses an absolute `EAS_PROJECT_ROOT` and `.easignore` so only this independent mobile project is uploaded, excluding the parent server and local credentials. Expo manages the Android signing key created for the first build; reuse it for updates.
+The next source version is 1.0.1. It requests notification permission on the first signed-in launch, reconnects allowed devices on resume/token changes, and reminds users at most weekly when notifications are off. An explicit in-app disable remains off until the user enables it again. Registration failures appear in Account rather than claiming success. Android update checks use the installed native build number, never a bundled JS version. Checks run on foreground entry at most every six hours, with a manual Account check. Dismissed update notices wait seven days; a different new build can notify immediately. Downloads open the trusted portal and require the user's install confirmation.
 
-Brand icon update (2026-10-05): supplied `reliantoutreach-favicon.zip` assets replace the app icon, splash mark, mobile web favicon, and the portal/PWA icons. The full-square maskable asset is used for native icons, including Android adaptive icons. Android version code 2 was submitted as build `096020df-d42c-42d7-80fc-3527060f2e52`; verify its status before downloading. The first APK above still contains the previous icon. The website icon changes remain local until portal deployment.
+For APK builds on Windows run `powershell.exe -ExecutionPolicy Bypass -File .\build-android.ps1` here. The script limits uploads to this mobile project and excludes local credentials. Use an EAS secret file variable `GOOGLE_SERVICES_JSON` in the preview environment and upload the corresponding FCM v1 service account through EAS credentials. Reuse the existing Android signing key for updates. Never publish a build as notification-ready without checking Firebase token registration and a receipt on a physical device.
+
+To publish an update, first finish and verify its signed EAS APK. Then update `src/lib/mobile-release.ts` in the portal with the actual version, build, notes and verified artifact URL. This single record drives both `/download` and `/api/mobile-release`. Never advance it to an unbuilt version. Existing build 2 does not contain the new update checker; users must install the next APK once manually.
 
 ## Local commands
 
@@ -46,7 +48,7 @@ The UI check uses installed Chrome, intercepts every remote request and supplies
 3. Android: create a Firebase Android app for com.reliantoutreach.mobile, configure FCM v1 credentials in EAS, and provide google-services.json as the local path / EAS file variable GOOGLE_SERVICES_JSON.
 4. iPhone: configure an Apple Developer account, bundle ID com.reliantoutreach.mobile and APNs credentials in EAS. Register physical test devices for internal distribution, or use TestFlight.
 5. Build Android with the preview profile for a directly installable APK. Build iOS with preview for registered devices; use production and EAS Submit for TestFlight.
-6. Sign in on the phone, open Account → Enable notifications, and allow the OS permission. Use a native development or release build for remote-push testing, not Expo Go.
+6. Sign in on the new APK and allow the first-launch OS permission. Account → Enable notifications is also available. Use a native development or release build for remote-push testing, not Expo Go.
 
 Commands:
 
