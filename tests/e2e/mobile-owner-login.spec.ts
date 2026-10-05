@@ -46,13 +46,15 @@ test.afterAll(async () => {
 
 test("existing owner credentials select the main account without an enable action, with an expired invite", async ({ playwright, page, baseURL }) => {
   const origin = new URL(baseURL!).origin;
+  // Independent simulated devices must not share the login rate-limit bucket.
+  const headers = { Origin: origin, "X-Forwarded-For": test.info().project.name === "mobile" ? "192.0.2.22" : "192.0.2.21" };
   const login = await playwright.request.newContext({ baseURL: origin });
-  const response = await login.post("/api/auth/sign-in/email", { headers: { Origin: origin }, data: { email: ownerEmail, password } });
+  const response = await login.post("/api/auth/sign-in/email", { headers, data: { email: ownerEmail, password } });
   expect(response.status()).toBe(200);
   const token = response.headers()["set-auth-token"];
   expect(token).toBeTruthy();
   await login.dispose();
-  const native = await playwright.request.newContext({ baseURL: origin, extraHTTPHeaders: { Origin: origin, Authorization: `Bearer ${token}` } });
+  const native = await playwright.request.newContext({ baseURL: origin, extraHTTPHeaders: { ...headers, Authorization: `Bearer ${token}` } });
   try {
     const workspaces = await (await native.get("/api/mobile/workspaces")).json();
     expect(workspaces.items.map((item: any) => item.client.id)).toEqual([mainId]);
@@ -75,12 +77,12 @@ test("existing owner credentials select the main account without an enable actio
     expect((await native.post("/api/mobile/workspace", { data: { clientId: mainId } })).status()).toBe(403);
   } finally { await native.dispose(); }
 
-  await page.request.post("/api/auth/sign-in/email", { headers: { Origin: origin }, data: { email: adminEmail, password } });
+  await page.request.post("/api/auth/sign-in/email", { headers, data: { email: adminEmail, password } });
   await page.goto(`/admin/clients/${mainId}`);
   await expect(page.getByRole("heading", { name: "Main account login test", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Enable my mobile access", exact: true })).toHaveCount(0);
   const adminWorkspaces = await (await page.request.get("/api/mobile/workspaces")).json();
   expect(adminWorkspaces.items.some((item: any) => item.client.id === mainId)).toBe(true);
-  expect((await page.request.post("/api/mobile/workspace", { headers: { Origin: origin }, data: { clientId: mainId } })).status()).toBe(200);
+  expect((await page.request.post("/api/mobile/workspace", { headers, data: { clientId: mainId } })).status()).toBe(200);
   expect((await (await page.request.get("/api/mobile/context")).json()).role).toBe("CLIENT_OWNER");
 });
