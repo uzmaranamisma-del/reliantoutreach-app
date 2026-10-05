@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
   poweredByHeader: false,
+  // Hostinger installs only web dependencies. Keep native test imports out of
+  // the web production build; CI typechecks and tests both projects separately.
+  typescript: { tsconfigPath: "tsconfig.build.json" },
   serverExternalPackages: ["@prisma/client", "@prisma/adapter-mariadb"],
   async headers() {
     return [
