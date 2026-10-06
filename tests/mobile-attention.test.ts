@@ -47,9 +47,9 @@ describe("mobile reminders and release checks", () => {
       body = await response.json();
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ios).toBeNull();
-    expect(body.android.build).toBeGreaterThanOrEqual(2);
+    expect(body.android.build).toBeGreaterThanOrEqual(3);
     expect(body.android.apk).toMatch(
-      /^https:\/\/expo\.dev\/artifacts\/eas\/.+\.apk$/,
+      /^https:\/\/github\.com\/uzmaranamisma-del\/reliantoutreach-app\/releases\/download\/[^/]+\/[^/]+\.apk$/,
     );
   });
 });

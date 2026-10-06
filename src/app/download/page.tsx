@@ -42,10 +42,11 @@ export default function DownloadPage() {
               <li>Download the APK on your Android phone.</li>
               <li>Open the file and follow Android’s installation prompts.</li>
               <li>Sign in with your existing ReliantOutreach account.</li>
+              <li>Allow notifications when prompted to receive new reply alerts.</li>
             </ol>
             <p className={styles.note}>New client? Accept your workspace invitation first. Each client signs in with their own account.</p>
             <div className={styles.ios}><strong>Using an iPhone?</strong><p>The iPhone app is not available yet. <Link href="/login">Use the mobile web portal <ArrowRight size={14} /></Link></p></div>
-            <p className={styles.notice}>Background push notifications are not enabled in this preview. Open the app to check new replies.</p>
+            <p className={styles.notice}>Already have the app? Install this update over your existing version. You can check notification access and app updates from your account screen.</p>
           </div>
         </section>
         <footer className={styles.footer}>Need help? <a href="mailto:info@reliantoutreach.com">info@reliantoutreach.com</a></footer>
