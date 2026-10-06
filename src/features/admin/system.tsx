@@ -7,8 +7,15 @@ import {
   Refresh,
   Status,
 } from "@/components/data";
-import { displayDate, readable } from "@/lib/presentation";
+import { readable } from "@/lib/presentation";
 import { useLive } from "@/features/portal/hooks";
+
+function preciseDate(value: string) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" })
+    : "Never";
+}
 
 export function System() {
   const q = useLive("/api/admin/system");
@@ -49,7 +56,7 @@ export function System() {
               ["Reply scan errors", q.data.replyScanErrors],
               ["Oldest queued alert", q.data.oldestPush?.createdAt || "None"],
               ["Mobile push", q.data.nativePushEnabled ? "Enabled" : "Disabled"],
-              ["Mobile worker last run", q.data.nativePushWorker?.value?.at || "Never"],
+              ["Mobile worker last run", preciseDate(q.data.nativePushWorker?.value?.at)],
               ["Registered mobile devices", q.data.nativeDevices],
               ["Pending mobile alerts", q.data.nativePushPending],
               ["Mobile alerts needing review", q.data.nativePushIssues],
@@ -78,7 +85,7 @@ export function System() {
               {
                 key: "createdAt",
                 label: "When",
-                render: (r: any) => displayDate(r.createdAt),
+                render: (r: any) => preciseDate(r.createdAt),
               },
             ]}
           />
