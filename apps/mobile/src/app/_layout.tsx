@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
@@ -101,7 +102,13 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <SessionProvider>
-        <Navigation />
+        <KeyboardProvider
+          statusBarTranslucent
+          navigationBarTranslucent
+          preserveEdgeToEdge
+        >
+          <Navigation />
+        </KeyboardProvider>
       </SessionProvider>
     </ThemeProvider>
   );

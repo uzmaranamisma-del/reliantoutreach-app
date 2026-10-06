@@ -171,10 +171,12 @@ export function Header({
   title,
   subtitle,
   back = false,
+  compact = false,
 }: {
   title: string;
   subtitle?: string;
   back?: boolean;
+  compact?: boolean;
 }) {
   const { colors } = useTheme();
   return (
@@ -199,11 +201,20 @@ export function Header({
         </Pressable>
       )}
       <View style={{ flex: 1 }}>
-        <Txt weight="extra" style={{ fontSize: 28, lineHeight: 36 }}>
+        <Txt
+          weight="extra"
+          numberOfLines={compact ? 1 : undefined}
+          style={{ fontSize: compact ? 20 : 28, lineHeight: compact ? 28 : 36 }}
+        >
           {title}
         </Txt>
         {subtitle && (
-          <Txt style={{ color: colors.muted, fontSize: 12 }}>{subtitle}</Txt>
+          <Txt
+            numberOfLines={compact ? 1 : undefined}
+            style={{ color: colors.muted, fontSize: 12 }}
+          >
+            {subtitle}
+          </Txt>
         )}
       </View>
       {!back && (

@@ -6,7 +6,7 @@ const config: ExpoConfig = {
   name: "ReliantOutreach",
   slug: "reliantoutreach-team",
   owner: "reliantoutreach-team",
-  version: "1.0.2",
+  version: "1.0.3",
   scheme: "reliantoutreach",
   orientation: "default",
   userInterfaceStyle: "automatic",
@@ -19,7 +19,9 @@ const config: ExpoConfig = {
   android: {
     package: "com.reliantoutreach.mobile",
     adaptiveIcon: {
-      foregroundImage: "./assets/icon.png",
+      foregroundImage: "./assets/android-icon-foreground.png",
+      backgroundImage: "./assets/android-icon-background.png",
+      monochromeImage: "./assets/android-icon-monochrome.png",
       backgroundColor: "#0129ac",
     },
     ...(process.env.GOOGLE_SERVICES_JSON

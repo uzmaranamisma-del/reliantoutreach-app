@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { FlatList, Pressable, View } from "react-native";
 import {
-  FlatList,
   KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  View,
-} from "react-native";
+  useKeyboardState,
+} from "react-native-keyboard-controller";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -47,7 +45,9 @@ export default function Conversation() {
     [atBottom, setAtBottom] = useState(true);
   const requestKey = useRef<string | undefined>(draft?.key),
     sending = useRef(false),
+    composing = useRef(false),
     listRef = useRef<FlatList<Message>>(null);
+  const keyboardVisible = useKeyboardState((state) => state.isVisible);
   const valid = !!context && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const q = useInfiniteQuery({
     queryKey: ["thread", scope],
@@ -100,7 +100,14 @@ export default function Conversation() {
     (m) => m.fromEmail?.toLowerCase() === email,
   );
   async function send() {
-    if (sending.current || uncertain || !latestReply || !text.trim() || !context?.permissions["inbox.reply"]) return;
+    if (
+      sending.current ||
+      uncertain ||
+      !latestReply ||
+      !text.trim() ||
+      !context?.permissions["inbox.reply"]
+    )
+      return;
     sending.current = true;
     setBusy(true);
     setError("");
@@ -156,10 +163,7 @@ export default function Conversation() {
       </Screen>
     );
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <Screen scroll={false}>
         <View
           style={{
@@ -169,36 +173,42 @@ export default function Conversation() {
             gap: 10,
           }}
         >
-          <Header title={displayName(email)} subtitle={email} back />
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Txt
-              numberOfLines={1}
-              style={{ flex: 1, color: colors.muted, fontSize: 11 }}
-            >
-              {latestReply?.subject || "Conversation"}
-            </Txt>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                state.data?.items[0]?.starred
-                  ? "Unstar conversation"
-                  : "Star conversation"
-              }
-              onPress={() => void toggleStar()}
-              style={{
-                minHeight: 44,
-                minWidth: 44,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Star
-                size={19}
-                color={state.data?.items[0]?.starred ? "#f9af03" : colors.muted}
-                fill={state.data?.items[0]?.starred ? "#f9af03" : "transparent"}
-              />
-            </Pressable>
-          </View>
+          <Header title={displayName(email)} subtitle={email} back compact />
+          {!keyboardVisible && (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Txt
+                numberOfLines={1}
+                style={{ flex: 1, color: colors.muted, fontSize: 11 }}
+              >
+                {latestReply?.subject || "Conversation"}
+              </Txt>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  state.data?.items[0]?.starred
+                    ? "Unstar conversation"
+                    : "Star conversation"
+                }
+                onPress={() => void toggleStar()}
+                style={{
+                  minHeight: 44,
+                  minWidth: 44,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Star
+                  size={19}
+                  color={
+                    state.data?.items[0]?.starred ? "#f9af03" : colors.muted
+                  }
+                  fill={
+                    state.data?.items[0]?.starred ? "#f9af03" : "transparent"
+                  }
+                />
+              </Pressable>
+            </View>
+          )}
         </View>
         {q.isPending ? (
           <Loading />
@@ -211,8 +221,14 @@ export default function Conversation() {
             style={{ flex: 1 }}
             contentContainerStyle={{ padding: 18, gap: 14 }}
             onScroll={(e) => setAtBottom(e.nativeEvent.contentOffset.y < 80)}
+            onLayout={() => {
+              // Keep the newest bubble beside the composer as the keyboard resizes the list.
+              if (composing.current || atBottom)
+                listRef.current?.scrollToOffset({ offset: 0, animated: false });
+            }}
             scrollEventThrottle={100}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             renderItem={({ item }) => {
               const outgoing = item.fromEmail?.toLowerCase() !== email;
               return (
@@ -286,7 +302,7 @@ export default function Conversation() {
           style={{
             paddingHorizontal: 16,
             paddingTop: 12,
-            paddingBottom: Math.max(insets.bottom, 12),
+            paddingBottom: keyboardVisible ? 12 : Math.max(insets.bottom, 12),
             gap: 10,
             backgroundColor: colors.panel,
             borderTopColor: colors.line,
@@ -335,7 +351,22 @@ export default function Conversation() {
                 maxLength={10000}
                 value={text}
                 onChangeText={setText}
-                style={{ flex: 1, maxHeight: 150, minHeight: 50 }}
+                onFocus={() => {
+                  composing.current = true;
+                  listRef.current?.scrollToOffset({
+                    offset: 0,
+                    animated: true,
+                  });
+                }}
+                onBlur={() => {
+                  composing.current = false;
+                }}
+                style={{
+                  flex: 1,
+                  maxHeight: 120,
+                  minHeight: 50,
+                  textAlignVertical: "top",
+                }}
               />
               <Pressable
                 accessibilityRole="button"

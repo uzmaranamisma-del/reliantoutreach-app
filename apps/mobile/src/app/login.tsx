@@ -1,11 +1,6 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Linking,
-  Platform,
-  Pressable,
-  View,
-} from "react-native";
+import { Linking, Pressable, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Redirect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowUpRight, Eye, EyeOff, ShieldCheck } from "lucide-react-native";
@@ -59,10 +54,7 @@ export default function Login() {
       </Screen>
     );
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1 }}
-    >
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <Screen>
         <View style={{ paddingTop: 12, gap: 28 }}>
           <Logo />
