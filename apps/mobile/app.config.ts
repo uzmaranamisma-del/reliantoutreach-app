@@ -6,7 +6,7 @@ const config: ExpoConfig = {
   name: "ReliantOutreach",
   slug: "reliantoutreach-team",
   owner: "reliantoutreach-team",
-  version: "1.0.1",
+  version: "1.0.2",
   scheme: "reliantoutreach",
   orientation: "default",
   userInterfaceStyle: "automatic",

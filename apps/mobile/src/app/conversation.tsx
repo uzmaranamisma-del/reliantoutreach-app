@@ -17,9 +17,9 @@ import type { ConversationState, MessagePage, Message } from "../lib/types";
 import {
   displayName,
   newestMessages,
-  plainText,
+  chatText,
   replyHtml,
-  timeLabel,
+  messageTime,
 } from "../lib/messages";
 import { drafts } from "../lib/drafts";
 import { useTheme } from "../ui/theme";
@@ -32,7 +32,6 @@ import {
   Screen,
   Txt,
 } from "../ui/components";
-import { Confirm } from "../ui/confirm";
 export default function Conversation() {
   const params = useLocalSearchParams<{ email: string }>(),
     email = typeof params.email === "string" ? params.email.toLowerCase() : "";
@@ -43,11 +42,11 @@ export default function Conversation() {
     draft = drafts.get(scope);
   const [text, setText] = useState(draft?.text || ""),
     [uncertain, setUncertain] = useState(!!draft?.uncertain),
-    [confirm, setConfirm] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [atBottom, setAtBottom] = useState(true);
   const requestKey = useRef<string | undefined>(draft?.key),
+    sending = useRef(false),
     listRef = useRef<FlatList<Message>>(null);
   const valid = !!context && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const q = useInfiniteQuery({
@@ -101,7 +100,8 @@ export default function Conversation() {
     (m) => m.fromEmail?.toLowerCase() === email,
   );
   async function send() {
-    if (!latestReply || !text.trim()) return;
+    if (sending.current || uncertain || !latestReply || !text.trim() || !context?.permissions["inbox.reply"]) return;
+    sending.current = true;
     setBusy(true);
     setError("");
     requestKey.current ||= Crypto.randomUUID();
@@ -116,14 +116,12 @@ export default function Conversation() {
       setText("");
       requestKey.current = undefined;
       setUncertain(false);
-      setConfirm(false);
       drafts.delete(scope);
       await q.refetch();
       void queryClient.invalidateQueries({ queryKey: ["inbox"] });
       listRef.current?.scrollToOffset({ offset: 0, animated: true });
     } catch (e) {
       setError((e as Error).message);
-      setConfirm(false);
       if (
         !(e instanceof ApiError) ||
         e.status === 0 ||
@@ -133,6 +131,7 @@ export default function Conversation() {
         setUncertain(true);
       else requestKey.current = undefined;
     } finally {
+      sending.current = false;
       setBusy(false);
     }
   }
@@ -240,7 +239,7 @@ export default function Conversation() {
                       lineHeight: 23,
                     }}
                   >
-                    {plainText(item.body || item.preview) ||
+                    {chatText(item.body || item.preview) ||
                       "This message has no text content."}
                   </Txt>
                   <Txt
@@ -250,8 +249,7 @@ export default function Conversation() {
                       textAlign: "right",
                     }}
                   >
-                    {outgoing ? "Sent · " : ""}
-                    {timeLabel(item.createdAt)}
+                    {messageTime(item.createdAt)}
                   </Txt>
                 </View>
               );
@@ -341,14 +339,14 @@ export default function Conversation() {
               />
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Review and send reply"
+                accessibilityLabel="Send reply"
                 disabled={
                   !text.trim() ||
                   !latestReply ||
                   busy ||
                   !context.permissions["inbox.reply"]
                 }
-                onPress={() => setConfirm(true)}
+                onPress={() => void send()}
                 style={{
                   width: 50,
                   height: 50,
@@ -370,22 +368,6 @@ export default function Conversation() {
             </View>
           )}
         </View>
-        <Confirm
-          open={confirm}
-          title="Send this reply?"
-          action="Send reply"
-          busy={busy}
-          onCancel={() => setConfirm(false)}
-          onConfirm={() => void send()}
-        >
-          <Txt>To {email}</Txt>
-          <Txt numberOfLines={5} style={{ color: colors.muted }}>
-            {text}
-          </Txt>
-          <Txt style={{ color: colors.muted, fontSize: 12 }}>
-            This sends a live email through your connected workspace.
-          </Txt>
-        </Confirm>
       </Screen>
     </KeyboardAvoidingView>
   );

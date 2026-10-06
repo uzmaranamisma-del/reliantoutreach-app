@@ -1,6 +1,5 @@
 import { vi, it, expect, beforeEach } from "vitest";
-vi.mock("@/server/reply-alerts", () => ({ collectReplyAlerts: vi.fn().mockResolvedValue({ scanned: 1 }) }));
-vi.mock("@/server/push", () => ({ processPushDeliveries: vi.fn().mockResolvedValue({ delivered: 0 }) }));
+vi.mock("@/server/notification-window", () => ({ processNotificationWindow: vi.fn().mockResolvedValue({ passes: 4 }) }));
 vi.mock("@/server/monthly-usage", () => ({ collectMonthlyUsage: vi.fn().mockResolvedValue({ workspaces: 1 }) }));
 vi.mock("@/server/jobs", () => ({
   processJobs: vi.fn().mockResolvedValue({ processed: 2 }),
@@ -8,6 +7,7 @@ vi.mock("@/server/jobs", () => ({
 }));
 import { POST } from "../src/app/api/internal/cron/process-jobs/route";
 import { processJobs } from "../src/server/jobs";
+import { processNotificationWindow } from "../src/server/notification-window";
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.CRON_SECRET = "sufficiently-long-cron-secret";
@@ -19,6 +19,7 @@ it("rejects missing authorization without processing", async () => {
   );
   expect(response.status).toBe(401);
   expect(processJobs).not.toHaveBeenCalled();
+  expect(processNotificationWindow).not.toHaveBeenCalled();
 });
 it("accepts only the configured bearer secret", async () => {
   const response = await POST(
@@ -30,6 +31,7 @@ it("accepts only the configured bearer secret", async () => {
   );
   expect(response.status).toBe(200);
   expect(processJobs).toHaveBeenCalledTimes(1);
+  expect(processNotificationWindow).toHaveBeenCalledTimes(1);
 });
 it("fails closed when no cron secret is configured", async () => {
   delete process.env.CRON_SECRET;

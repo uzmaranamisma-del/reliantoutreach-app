@@ -8,6 +8,8 @@ The existing Business Web Hosting plan exposes Cron Jobs under the `reliantware.
 
 Automatic execution was verified through hPanel output and advancing `cron.lastRun` in the live application. Existing expired imports were marked failed rather than replayed. Physical mobile push receipt still requires a device check.
 
+October 6: the same authenticated minute request now awaits a bounded notification window, scanning at offsets 0, 15, 30 and 45 seconds. Android and browser delivery run independently after each scan; jobs and usage maintenance run once alongside the window. Keep the existing 240-second curl timeout. A database lease prevents overlapping windows, missed intervals are skipped after slow requests, and existing event/device deduplication remains in effect. This reduces the minute polling delay; provider ingestion, account backlog, rate limits and device delivery can still add latency. It is polling, not a verified provider webhook.
+
 ## Endpoint
 
 ```text

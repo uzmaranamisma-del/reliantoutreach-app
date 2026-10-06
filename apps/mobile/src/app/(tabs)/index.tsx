@@ -10,7 +10,7 @@ import {
   displayName,
   initials,
   newestMessages,
-  plainText,
+  chatText,
   timeLabel,
 } from "../../lib/messages";
 import type { ConversationState, MessagePage } from "../../lib/types";
@@ -265,7 +265,7 @@ export default function InboxScreen() {
                         color: colors.muted,
                       }}
                     >
-                      {plainText(item.preview || item.body)}
+                      {chatText(item.body || item.preview)}
                     </Txt>
                     {states.get(item.fromEmail.toLowerCase())?.starred && (
                       <Star size={12} color="#f9af03" fill="#f9af03" />

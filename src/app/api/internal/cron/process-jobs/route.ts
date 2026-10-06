@@ -1,10 +1,8 @@
 import { secretMatches } from "@/lib/crypto";
 import { endpoint, AppError } from "@/lib/errors";
 import { processJobs, scheduleReconciliation } from "@/server/jobs";
-import { collectReplyAlerts } from "@/server/reply-alerts";
-import { processPushDeliveries } from "@/server/push";
+import { processNotificationWindow } from "@/server/notification-window";
 import { collectMonthlyUsage } from "@/server/monthly-usage";
-import { processNativePush } from "@/server/native-push";
 export const runtime = "nodejs";
 export const POST = endpoint(async (request) => {
   if (
@@ -15,17 +13,19 @@ export const POST = endpoint(async (request) => {
     !process.env.CRON_SECRET
   )
     throw new AppError(401, "Unauthorized.");
-  // Independent stages: a provider outage must not block queued push retries.
+  // Notification polling has its own lease and runs alongside maintenance,
+  // so imports and usage scans cannot add a minute to new reply alerts.
   const outcomes: Record<string, unknown> = {};
-  for (const [name, run] of [
-    ["replies", collectReplyAlerts],
-    ["push", processPushDeliveries],
-    ["nativePush", processNativePush],
-    ["jobs", async () => { await scheduleReconciliation(); return processJobs(); }],
-    ["usage", collectMonthlyUsage],
-  ] as const) {
+  const stage = async (name: string, run: () => Promise<unknown>) => {
     try { outcomes[name] = await run(); }
     catch { outcomes[name] = { error: "Stage failed; inspect system health." }; }
-  }
+  };
+  await Promise.all([
+    stage("notifications", processNotificationWindow),
+    (async () => {
+      await stage("jobs", async () => { await scheduleReconciliation(); return processJobs(); });
+      await stage("usage", collectMonthlyUsage);
+    })(),
+  ]);
   return outcomes;
 });
